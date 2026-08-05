@@ -66,6 +66,8 @@ export default {
       return json({ ok: false, error: 'bad phone' }, 400);
     }
 
+    const digits = phone.replace(/\D/g, '');
+
     const kyivTime = new Date().toLocaleString('uk-UA', {
       timeZone: 'Europe/Kiev',
       day: '2-digit', month: '2-digit',
@@ -78,7 +80,9 @@ export default {
       `Телефон: ${phone}\n` +
       (tg ? `Telegram: @${tg}\n` : '') +
       (utm ? `Джерело: ${utm}\n` : '') +
-      `Час: ${kyivTime} (Київ)`;
+      `Час: ${kyivTime} (Київ)\n\n` +
+      `Viber: viber://chat?number=%2B${digits}` +
+      (tg ? `\nTelegram: https://t.me/${tg}` : '');
 
     try {
       const r = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/sendMessage`, {
