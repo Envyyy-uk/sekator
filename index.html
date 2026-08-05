@@ -208,9 +208,19 @@ input:focus-visible{outline:3px solid var(--charge);outline-offset:2px}
 .done h3{font-size:26px;color:var(--sap);margin-bottom:10px}
 
 .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:#23201B;border:2px solid #23201B}
-.fact{background:#fff;color:#23201B;padding:20px 12px;text-align:center}
-.fact b{display:block;font-family:"Bitter",serif;font-size:30px;font-weight:800;color:var(--charge-dark)}
-.fact span{font-size:16px;color:var(--bark-soft)}
+.fact{
+  background:#fff;color:#23201B;padding:22px 10px 20px;text-align:center;
+  display:flex;flex-direction:column;justify-content:center;gap:8px;min-height:132px;
+}
+.fact b{
+  display:block;font-family:"Bitter",serif;font-weight:800;
+  font-size:clamp(22px,3.4vw,30px);line-height:1.05;color:var(--charge-dark);
+  white-space:nowrap;
+}
+.fact span{font-size:15px;line-height:1.3;color:var(--bark-soft)}
+.facts-note{
+  margin-top:14px;text-align:center;font-size:16px;color:var(--bark-soft);
+}
 
 h2{font-size:clamp(24px,5vw,32px);font-weight:800;margin-bottom:18px}
 .cut-rule{height:3px;background:#23201B;transform:skewY(-.6deg)}
@@ -318,9 +328,9 @@ footer a{color:#F5C77E}
           <label for="phone">Номер телефону</label>
           <div class="tel-wrap">
             <span class="tel-prefix">+380</span>
-            <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="numeric" placeholder="95 805 1643">
+            <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="numeric" placeholder="67 123 45 67">
           </div>
-          <div class="err" id="err-phone">Введіть 9 цифр після +380 — наприклад 95 805 1643</div>
+          <div class="err" id="err-phone">Введіть 9 цифр після +380 — наприклад 67 123 45 67</div>
 
           <label for="tg">Нік у Telegram <span class="opt">— для зв'язку та листування</span></label>
           <input type="text" id="tg" name="tg" placeholder="@nickname" autocomplete="off">
@@ -348,8 +358,9 @@ footer a{color:#F5C77E}
   <div class="facts">
     <div class="fact"><b><span data-cut></span> мм</b><span>максимальний зріз</span></div>
     <div class="fact"><b><span data-batt></span> АКБ</b><span>у комплекті</span></div>
-    <div class="fact"><b>без паузи</b><span>один працює, другий заряджається</span></div>
+    <div class="fact"><b>1 кнопка</b><span>керування однією рукою</span></div>
   </div>
+  <p class="facts-note">Поки один акумулятор працює — другий заряджається. Робота без пауз.</p>
     </div>
   </div>
 </div></header>
@@ -393,7 +404,7 @@ footer a{color:#F5C77E}
     <li>Мастило та ключ для обслуговування</li>
     <li>Кейс для перенесення</li>
   </ul>
-  <p style="margin-top:16px;color:#4E4841">Гарантія 12 місяців. Повернення протягом 14 днів згідно із Законом «Про захист прав споживачів».</p>
+  <p style="margin-top:16px;color:#4E4841">Повернення протягом 14 днів згідно із Законом «Про захист прав споживачів».</p>
 </div></section>
 
 <section id="reviews"><div class="wrap">
@@ -419,17 +430,31 @@ footer a{color:#F5C77E}
   <a href="#form">Замовити</a>
 </div>
 
+<div id="lightbox"><img alt=""></div>
+
 <script>
 (function(){
+  'use strict';
+
+  var $  = function(id){ return document.getElementById(id); };
+  var $$ = function(sel){ return Array.prototype.slice.call(document.querySelectorAll(sel)); };
   var fmt = function(n){ return Number(n).toLocaleString('uk-UA') + ' грн'; };
 
-  // ── Характеристики ──
-  document.querySelectorAll('[data-cut]').forEach(function(el){ el.textContent = CONFIG.cutMm; });
-  document.querySelectorAll('[data-batt]').forEach(function(el){ el.textContent = CONFIG.batteries; });
+  // Кожен блок ізольований: помилка в одному не ламає решту
+  function block(name, fn){
+    try { fn(); } catch (e) { console.error('[' + name + ']', e); }
+  }
 
-  // ── Шкала діаметра: малюється від реального cutMm ──
-  var row = document.getElementById('scaleRow');
-  if(row){
+  /* ── Характеристики ── */
+  block('specs', function(){
+    $$('[data-cut]').forEach(function(el){ el.textContent = CONFIG.cutMm; });
+    $$('[data-batt]').forEach(function(el){ el.textContent = CONFIG.batteries; });
+  });
+
+  /* ── Шкала діаметра ── */
+  block('scale', function(){
+    var row = $('scaleRow');
+    if (!row) return;
     var max = CONFIG.cutMm;
     var sizes = [
       { mm: Math.round(max * 0.5),  ok: true  },
@@ -447,138 +472,154 @@ footer a{color:#F5C77E}
       d.setAttribute('data-mm', s.mm + ' мм');
       row.appendChild(d);
     });
-  }
-
-  // ── Ціни ──
-  document.querySelectorAll('[data-price]').forEach(function(el){ el.textContent = fmt(CONFIG.price); });
-  document.querySelectorAll('[data-old-price]').forEach(function(el){
-    if(CONFIG.oldPrice && CONFIG.oldPrice > CONFIG.price) el.textContent = fmt(CONFIG.oldPrice);
-    else el.style.display = 'none';
   });
 
-  // ── Telegram: немає ніка — немає кнопки ──
-  var tgBtn = document.getElementById('tgBtn');
-  if(CONFIG.telegram){ tgBtn.href = 'https://t.me/' + CONFIG.telegram; }
-  else { tgBtn.remove(); }
+  /* ── Ціни ── */
+  block('price', function(){
+    $$('[data-price]').forEach(function(el){ el.textContent = fmt(CONFIG.price); });
+    $$('[data-old-price]').forEach(function(el){
+      if (CONFIG.oldPrice && CONFIG.oldPrice > CONFIG.price) el.textContent = fmt(CONFIG.oldPrice);
+      else el.style.display = 'none';
+    });
+  });
 
-  // ── Фото: перше в шапці, решта в галерею ──
-  var caps = [
-    'Ріже гілку одним натиском',
-    'Що входить у комплект',
-    'Тримається однією рукою',
-  ];
-  if (Array.isArray(CONFIG.photos) && CONFIG.photos.length) {
-    document.getElementById('heroImg').src = CONFIG.photos[0];
-    document.getElementById('heroPhoto').style.display = 'block';
+  /* ── Telegram ── */
+  block('telegram', function(){
+    var b = $('tgBtn');
+    if (!b) return;
+    if (CONFIG.telegram) b.href = 'https://t.me/' + CONFIG.telegram;
+    else b.remove();
+  });
 
-    var grid = document.getElementById('galGrid');
-    CONFIG.photos.forEach(function(src, i){
+  /* ── Фото і галерея ── */
+  block('photos', function(){
+    var photos = Array.isArray(CONFIG.photos) ? CONFIG.photos : [];
+    if (!photos.length) return;
+
+    var heroImg = $('heroImg'), heroBox = $('heroPhoto');
+    if (heroImg && heroBox) { heroImg.src = photos[0]; heroBox.style.display = 'block'; }
+
+    var caps = ['Ріже гілку одним натиском', 'Що входить у комплект', 'Тримається однією рукою'];
+    var grid = $('galGrid'), sect = $('gallery');
+    if (!grid || !sect) return;
+
+    photos.forEach(function(src, i){
       var fig = document.createElement('figure');
       var img = document.createElement('img');
       img.src = src; img.alt = caps[i] || 'Акумуляторний секатор'; img.loading = 'lazy';
-      var cap = document.createElement('figcaption');
-      cap.textContent = caps[i] || '';
-      fig.appendChild(img); if (caps[i]) fig.appendChild(cap);
+      fig.appendChild(img);
+      if (caps[i]) {
+        var cap = document.createElement('figcaption');
+        cap.textContent = caps[i];
+        fig.appendChild(cap);
+      }
       grid.appendChild(fig);
     });
-    document.getElementById('gallery').style.display = 'block';
+    sect.style.display = 'block';
 
-    var lb = document.getElementById('lightbox');
+    var lb = $('lightbox');
+    if (!lb) return;
+    var lbImg = lb.querySelector('img');
     grid.addEventListener('click', function(e){
-      if (e.target.tagName !== 'IMG') return;
-      lb.querySelector('img').src = e.target.src;
+      if (e.target.tagName !== 'IMG' || !lbImg) return;
+      lbImg.src = e.target.src;
       lb.classList.add('on');
     });
     lb.addEventListener('click', function(){ lb.classList.remove('on'); });
     document.addEventListener('keydown', function(e){
       if (e.key === 'Escape') lb.classList.remove('on');
     });
-  }
+  });
 
-  // ── Відео: немає — блок зникає ──
-  if(CONFIG.videoUrl){
-    var v = document.getElementById('video');
+  /* ── Відео важливіше за фото ── */
+  block('video', function(){
+    if (!CONFIG.videoUrl) return;
+    var v = $('video'), m = $('media'), hp = $('heroPhoto');
+    if (!v || !m) return;
     v.src = CONFIG.videoUrl;
-    document.getElementById('media').style.display = 'block';
-    document.getElementById('heroPhoto').style.display = 'none';
-  }
+    m.style.display = 'block';
+    if (hp) hp.style.display = 'none';
+  });
 
-  // ── Юр. дані: немає — рядок зникає ──
-  if(CONFIG.legal){
-    var lg = document.getElementById('legal');
+  /* ── Юр. дані ── */
+  block('legal', function(){
+    var lg = $('legal');
+    if (!lg || !CONFIG.legal) return;
     lg.textContent = CONFIG.legal;
     lg.style.display = 'block';
-  }
+  });
 
-  // ── Відгуки: порожньо — секція зникає ──
-  if(Array.isArray(CONFIG.reviews) && CONFIG.reviews.length){
-    var list = document.getElementById('reviewList');
-    CONFIG.reviews.forEach(function(r){
+  /* ── Відгуки ── */
+  block('reviews', function(){
+    var list = $('reviewList'), sect = $('reviews');
+    if (!list || !sect) return;
+    var rev = Array.isArray(CONFIG.reviews) ? CONFIG.reviews : [];
+    if (!rev.length) return;
+    rev.forEach(function(r){
       var d = document.createElement('div');
       d.className = 'review';
       var p = document.createElement('p'); p.textContent = r.text;
-      var c = document.createElement('cite'); c.textContent = r.author || '';
-      d.appendChild(p); if(r.author) d.appendChild(c);
+      d.appendChild(p);
+      if (r.author) { var c = document.createElement('cite'); c.textContent = r.author; d.appendChild(c); }
       list.appendChild(d);
     });
-    document.getElementById('reviews').style.display = 'block';
-  }
-
-  // ── Форма ──
-  var form = document.getElementById('lead');
-  var done = document.getElementById('done');
-  var direct = document.getElementById('direct');
-  var phone = document.getElementById('phone');
-  var name = document.getElementById('name');
-
-  // Лишає рівно 9 цифр. Вставка +380..., 380..., 0... теж працює.
-  function digits9(v){
-    var d = String(v).replace(/\D/g,'');
-    d = d.replace(/^380/, '').replace(/^0/, '');
-    return d.slice(0, 9);
-  }
-
-  phone.addEventListener('input', function(){
-    var d = digits9(this.value);
-    var out = d;
-    if(d.length > 2) out = d.slice(0,2) + ' ' + d.slice(2);
-    if(d.length > 5) out = d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5);
-    this.value = out;
+    sect.style.display = 'block';
   });
 
-  form.addEventListener('submit', function(e){
-    e.preventDefault();
-    var en = document.getElementById('err-name');
-    var ep = document.getElementById('err-phone');
-    en.classList.remove('show'); ep.classList.remove('show');
+  /* ── Форма ── */
+  block('form', function(){
+    var form = $('lead'), done = $('done'), direct = $('direct');
+    var phone = $('phone'), name = $('name'), tg = $('tg');
+    var errName = $('err-name'), errPhone = $('err-phone');
+    if (!form || !phone || !name) return;
 
-    var badName = name.value.trim().length < 2;
-    var badPhone = digits9(phone.value).length !== 9;
-    if(badName) en.classList.add('show');
-    if(badPhone) ep.classList.add('show');
-    if(badName || badPhone){ (badName ? name : phone).focus(); return; }
+    // Лишає рівно 9 цифр. Вставка +380..., 380..., 0... теж працює.
+    function digits9(v){
+      var d = String(v).replace(/\D/g, '');
+      d = d.replace(/^380/, '').replace(/^0/, '');
+      return d.slice(0, 9);
+    }
 
-    if(window.fbq) fbq('track','Lead');
+    phone.addEventListener('input', function(){
+      var d = digits9(this.value), out = d;
+      if (d.length > 2) out = d.slice(0,2) + ' ' + d.slice(2);
+      if (d.length > 5) out = d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5);
+      this.value = out;
+    });
 
-    form.style.display = 'none';
-    if(direct) direct.style.display = 'none';
-    done.classList.add('show');
-    done.scrollIntoView({block:'center'});
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      if (errName)  errName.classList.remove('show');
+      if (errPhone) errPhone.classList.remove('show');
 
-    fetch('/api/lead', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
+      var badName  = name.value.trim().length < 2;
+      var badPhone = digits9(phone.value).length !== 9;
+      if (badName && errName)   errName.classList.add('show');
+      if (badPhone && errPhone) errPhone.classList.add('show');
+      if (badName || badPhone) { (badName ? name : phone).focus(); return; }
+
+      var payload = {
         name: name.value.trim(),
         phone: '+380' + digits9(phone.value),
-        tg: (document.getElementById('tg').value || '').trim().replace(/^@/,''),
+        tg: tg ? tg.value.trim().replace(/^@/, '') : '',
         utm: location.search,
         ts: new Date().toISOString()
-      })
-    }).catch(function(){});
+      };
+
+      fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(function(){});
+
+      if (window.fbq) fbq('track', 'Lead');
+
+      form.style.display = 'none';
+      if (direct) direct.style.display = 'none';
+      if (done) { done.classList.add('show'); done.scrollIntoView({ block: 'center' }); }
+    });
   });
 })();
 </script>
-<div id="lightbox"><img alt=""></div>
 </body>
 </html>
