@@ -36,7 +36,7 @@
  */
 
 /* ═══ НАЛАШТУВАННЯ ТОВАРУ — міняй тут ═══ */
-const VERSION = '2026-08-05-v4';
+const VERSION = '2026-08-05-v5';
 const PRODUCT = 'Акумуляторний секатор з 2 АКБ у кейсі';
 const PRICE   = 1890;   // накладений платіж, грн
 
@@ -177,10 +177,13 @@ function buildKeyboard(origin, d) {
     { text: '🧹 Стерти дані', callback_data: 'clear' },
   ]);
 
-  // Тексти доступні завжди — бот сам скаже, якщо чогось бракує
+  // Тексти в порядку процесу
   rows.push([
-    { text: '📤 Постачальнику', callback_data: 'msg:sup' },
-    { text: '📨 Клієнту',       callback_data: 'msg:cli' },
+    { text: '1️⃣ Запит даних',   callback_data: 'msg:ask' },
+    { text: '2️⃣ Постачальнику', callback_data: 'msg:sup' },
+  ]);
+  rows.push([
+    { text: '3️⃣ ТТН клієнту', callback_data: 'msg:cli' },
   ]);
 
   rows.push(FLOW[d.status].next.map(([k, label]) => ({ text: label, callback_data: 'st:' + k })));
@@ -188,6 +191,25 @@ function buildKeyboard(origin, d) {
 }
 
 /* ═══════════════ ГЕНЕРОВАНІ ТЕКСТИ ═══════════════ */
+
+function askText(d) {
+  const first = d.name ? d.name.trim().split(/\s+/)[0] : '';
+  return [
+    `Добрий день${first ? ', ' + first : ''}!`,
+    '',
+    `Ви залишили заявку на ${PRODUCT.replace(/^./, c => c.toLowerCase())}.`,
+    'Підтверджуєте замовлення?',
+    '',
+    `Ціна ${PRICE} грн. Оплата при отриманні на Новій Пошті, передоплати немає.`,
+    '',
+    'Якщо так — надішліть, будь ласка:',
+    '• Місто',
+    '• Номер відділення Нової Пошти',
+    '• ПІБ отримувача повністю',
+    '',
+    'Відправимо сьогодні.',
+  ].join('\n');
+}
 
 function supplierText(d) {
   return [
@@ -327,6 +349,12 @@ async function onCallback(cq, env, url, ok) {
     const d = parseCard(msg.text || '');
     const kind = data.slice(4);
 
+    if (kind === 'ask' && !d.name) {
+      await tgApi(env, 'answerCallbackQuery', {
+        callback_query_id: cq.id, text: 'У заявці немає імені', show_alert: true,
+      });
+      return ok();
+    }
     if (kind === 'sup' && (!d.city || !d.branch)) {
       await tgApi(env, 'answerCallbackQuery', {
         callback_query_id: cq.id,
@@ -346,7 +374,7 @@ async function onCallback(cq, env, url, ok) {
 
     await tgApi(env, 'sendMessage', {
       chat_id: msg.chat.id,
-      text: kind === 'sup' ? supplierText(d) : clientText(d),
+      text: kind === 'ask' ? askText(d) : (kind === 'sup' ? supplierText(d) : clientText(d)),
       disable_web_page_preview: true,
       reply_markup: { inline_keyboard: [[{ text: '🗑 Прибрати', callback_data: 'del' }]] },
     });

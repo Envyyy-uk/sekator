@@ -32,7 +32,6 @@ var CONFIG = {
 
   cutMm:     20,   // макс. діаметр зрізу, мм
   batteries: 2,    // акумуляторів у комплекті
-  workHours: 4,    // годин роботи на заряді
 
 
   // ── НЕОБОВʼЯЗКОВЕ ──────────────────────────────────────────
@@ -45,8 +44,13 @@ var CONFIG = {
   pixelId: '',
 
   // Відео від постачальника: mp4 поруч з index.html, або пряме посилання.
-  // Порожньо — блок відео зникає, героєм лишається шкала діаметра.
+  // Порожньо — блок відео зникає, героєм лишається головне фото.
   videoUrl: '',
+
+  // Фото товару. Файли кладуться поруч з index.html.
+  // Перше стає головним у шапці, решта — галерея нижче.
+  // Порожній масив — блоки зникають.
+  photos: ['photo-2.webp', 'photo-kit.webp', 'photo-3.webp'],
 
   // Юр. дані у футері. Порожньо — рядок зникає.
   legal: '',
@@ -119,6 +123,22 @@ h1 em{font-style:normal;color:var(--charge-dark);text-decoration:underline;text-
 .lede{font-size:20px;color:var(--bark-soft);margin-bottom:24px}
 
 .media{margin-bottom:26px;display:none;border:2px solid #23201B;background:#000}
+.hero-photo{display:none;margin-bottom:26px;border:2px solid #23201B;background:#fff}
+.hero-photo img{display:block;width:100%;height:auto}
+
+#gallery{display:none}
+.gal{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.gal figure{margin:0;background:#fff;border:2px solid #23201B}
+.gal img{display:block;width:100%;height:auto;cursor:zoom-in}
+.gal figcaption{font-size:15px;color:#4E4841;padding:10px 12px;border-top:1px solid var(--blade)}
+@media(max-width:560px){.gal{grid-template-columns:1fr}}
+
+#lightbox{
+  display:none;position:fixed;inset:0;z-index:100;background:rgba(20,18,15,.94);
+  align-items:center;justify-content:center;padding:20px;cursor:zoom-out;
+}
+#lightbox.on{display:flex}
+#lightbox img{max-width:100%;max-height:90vh;border:3px solid #F5F3EE}
 .media video{display:block;width:100%;height:auto}
 
 .scale{background:#23201B;color:#F5F3EE;padding:26px 20px;margin:0 0 26px}
@@ -270,6 +290,8 @@ footer a{color:#F5C77E}
         <video id="video" muted loop playsinline autoplay preload="metadata"></video>
       </div>
 
+      <div class="hero-photo" id="heroPhoto"><img id="heroImg" alt="Акумуляторний секатор"></div>
+
       <div class="scale">
         <h3>Яку гілку ріже насправді</h3>
         <div class="scale-row" id="scaleRow"></div>
@@ -325,8 +347,8 @@ footer a{color:#F5C77E}
     <div class="h-facts">
   <div class="facts">
     <div class="fact"><b><span data-cut></span> мм</b><span>максимальний зріз</span></div>
-    <div class="fact"><b><span data-hours></span> год</b><span>роботи на заряді</span></div>
-    <div class="fact"><b data-batt></b><span>акумулятори в комплекті</span></div>
+    <div class="fact"><b><span data-batt></span> АКБ</b><span>у комплекті</span></div>
+    <div class="fact"><b>без паузи</b><span>один працює, другий заряджається</span></div>
   </div>
     </div>
   </div>
@@ -350,6 +372,13 @@ footer a{color:#F5C77E}
   <div class="step"><b>2</b><p><strong>Ми пишемо вам</strong>У Viber на вказаний номер або в Telegram. Уточнюємо місто й відділення, відповідаємо на питання.</p></div>
   <div class="step"><b>3</b><p><strong>Отримуєте й платите</strong>Оглядаєте товар на відділенні. Платите тільки після того, як побачили.</p></div>
   <div class="pay"><strong>Передоплати немає.</strong> Гроші ви віддаєте на пошті, коли посилка вже у вас в руках. Якщо товар не сподобався — просто не забираєте.</div>
+</div></section>
+
+<div class="cut-rule"></div>
+
+<section id="gallery"><div class="wrap">
+  <h2>Як він виглядає</h2>
+  <div class="gal" id="galGrid"></div>
 </div></section>
 
 <div class="cut-rule"></div>
@@ -396,7 +425,6 @@ footer a{color:#F5C77E}
 
   // ── Характеристики ──
   document.querySelectorAll('[data-cut]').forEach(function(el){ el.textContent = CONFIG.cutMm; });
-  document.querySelectorAll('[data-hours]').forEach(function(el){ el.textContent = CONFIG.workHours; });
   document.querySelectorAll('[data-batt]').forEach(function(el){ el.textContent = CONFIG.batteries; });
 
   // ── Шкала діаметра: малюється від реального cutMm ──
@@ -433,11 +461,46 @@ footer a{color:#F5C77E}
   if(CONFIG.telegram){ tgBtn.href = 'https://t.me/' + CONFIG.telegram; }
   else { tgBtn.remove(); }
 
+  // ── Фото: перше в шапці, решта в галерею ──
+  var caps = [
+    'Ріже гілку одним натиском',
+    'Що входить у комплект',
+    'Тримається однією рукою',
+  ];
+  if (Array.isArray(CONFIG.photos) && CONFIG.photos.length) {
+    document.getElementById('heroImg').src = CONFIG.photos[0];
+    document.getElementById('heroPhoto').style.display = 'block';
+
+    var grid = document.getElementById('galGrid');
+    CONFIG.photos.forEach(function(src, i){
+      var fig = document.createElement('figure');
+      var img = document.createElement('img');
+      img.src = src; img.alt = caps[i] || 'Акумуляторний секатор'; img.loading = 'lazy';
+      var cap = document.createElement('figcaption');
+      cap.textContent = caps[i] || '';
+      fig.appendChild(img); if (caps[i]) fig.appendChild(cap);
+      grid.appendChild(fig);
+    });
+    document.getElementById('gallery').style.display = 'block';
+
+    var lb = document.getElementById('lightbox');
+    grid.addEventListener('click', function(e){
+      if (e.target.tagName !== 'IMG') return;
+      lb.querySelector('img').src = e.target.src;
+      lb.classList.add('on');
+    });
+    lb.addEventListener('click', function(){ lb.classList.remove('on'); });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') lb.classList.remove('on');
+    });
+  }
+
   // ── Відео: немає — блок зникає ──
   if(CONFIG.videoUrl){
     var v = document.getElementById('video');
     v.src = CONFIG.videoUrl;
     document.getElementById('media').style.display = 'block';
+    document.getElementById('heroPhoto').style.display = 'none';
   }
 
   // ── Юр. дані: немає — рядок зникає ──
@@ -516,5 +579,6 @@ footer a{color:#F5C77E}
   });
 })();
 </script>
+<div id="lightbox"><img alt=""></div>
 </body>
 </html>
