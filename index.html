@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light only">
+<title>Акумуляторний секатор для обрізки саду — оплата при отриманні</title>
+<meta name="description" content="Акумуляторний секатор для обрізки саду. Ріже гілку до 20 мм одним натиском. Оплата при отриманні на Новій Пошті.">
+
+<!-- ═══════════════════════════════════════════════════════════
+     ЄДИНЕ МІСЦЕ, ДЕ ТРЕБА ЩОСЬ МІНЯТИ.
+
+     Правило: що не заповнив — те просто не показується.
+     Ніяких квадратних дужок на живому сайті не буде.
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+var CONFIG = {
+
+  // ── ОБОВʼЯЗКОВЕ ────────────────────────────────────────────
+
+  // Ціни. Тільки числа. oldPrice постав 0, якщо не хочеш закреслену.
+  // Ринковий кластер на Prom: 1600–2100. 1890 — середина.
+  // Нижче 1690 платна реклама не окупається при дроп-ціні 887.
+  price:    1890,
+  oldPrice: 2390,
+
+
+  // ── ХАРАКТЕРИСТИКИ ─────────────────────────────────────────
+  // Підтвердь у постачальника ПИСЬМОВО перед запуском реклами.
+  // Заявлені цифри з каталогу часто завищені (напр. «48V» —
+  // насправді 21В). Хибне твердження на сайті = твої повернення.
+
+  cutMm:     20,   // макс. діаметр зрізу, мм
+  batteries: 2,    // акумуляторів у комплекті
+  workHours: 4,    // годин роботи на заряді
+
+
+  // ── НЕОБОВʼЯЗКОВЕ ──────────────────────────────────────────
+  // Порожнє значення = блок не показується взагалі.
+
+  // Нік у Telegram без @. Порожньо — кнопки Telegram не буде.
+  telegram: 'Elektro_Sekator_Mng',
+
+  // Meta Pixel ID. Порожньо — піксель не вантажиться.
+  pixelId: '',
+
+  // Відео від постачальника: mp4 поруч з index.html, або пряме посилання.
+  // Порожньо — блок відео зникає, героєм лишається шкала діаметра.
+  videoUrl: '',
+
+  // Юр. дані у футері. Порожньо — рядок зникає.
+  legal: '',
+
+  // Відгуки. Порожній масив = секція відгуків зникає.
+  // Додавати так:
+  //   { text: 'Текст відгуку', author: 'Марія, Полтава' },
+  reviews: []
+
+};
+</script>
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;800&display=swap" rel="stylesheet">
+
+<script>
+if(CONFIG.pixelId){
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+  n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+  document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init',CONFIG.pixelId);
+  fbq('track','PageView');
+}
+</script>
+
+<style>
+:root{
+  color-scheme:light;
+  --paper:#F5F3EE;
+  --bark:#23201B;
+  --bark-soft:#4E4841;
+  --sap:#3F6E28;
+  --sap-light:#EAF1E3;
+  --charge:#DC6803;
+  --charge-dark:#B54708;
+  --blade:#C4C8C1;
+  --warm:#FBF0DC;
+  --white:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;background:#F5F3EE}
+body{
+  background:#F5F3EE;color:#23201B;
+  font-family:"PT Sans","Segoe UI",Roboto,system-ui,-apple-system,sans-serif;
+  font-size:19px;line-height:1.55;-webkit-text-size-adjust:100%;
+}
+/* Кожна секція має власний фон — щоб примусовий темний режим
+   у вбудованих браузерах не зробив текст невидимим. */
+section{padding:44px 0;background:#F5F3EE;color:#23201B}
+h1,h2,h3{font-family:"Bitter",Georgia,serif;line-height:1.15;letter-spacing:-.01em;color:#23201B}
+p,li,span,div,label,cite{color:inherit}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px}
+
+.trustbar{background:#23201B;color:#F5F3EE;padding:10px 0;font-size:16px}
+.trustbar .wrap{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;text-align:center}
+.trustbar b{color:#F5C77E}
+
+.hero{background:#fff;color:#23201B;padding:30px 0 44px;border-bottom:3px solid #23201B}
+.eyebrow{
+  display:inline-block;background:var(--sap-light);color:var(--sap);
+  font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;
+  padding:6px 12px;border-radius:3px;margin-bottom:16px;
+}
+h1{font-size:clamp(30px,7vw,44px);font-weight:800;margin-bottom:14px}
+h1 em{font-style:normal;color:var(--charge-dark);text-decoration:underline;text-decoration-thickness:4px;text-underline-offset:5px}
+.lede{font-size:20px;color:var(--bark-soft);margin-bottom:24px}
+
+.media{margin-bottom:26px;display:none;border:2px solid #23201B;background:#000}
+.media video{display:block;width:100%;height:auto}
+
+.scale{background:#23201B;color:#F5F3EE;padding:26px 20px;margin:0 0 26px}
+.scale h3{font-size:19px;font-weight:600;margin-bottom:20px;color:#F5C77E}
+.scale-row{display:flex;align-items:flex-end;gap:12px;height:120px;margin-bottom:12px}
+.branch{border-radius:50%;position:relative;flex-shrink:0;border:2px solid #F5F3EE}
+.branch.ok{background:#7FA845}
+.branch.no{background:#6B6560;opacity:.5}
+.branch::after{
+  content:attr(data-mm);position:absolute;bottom:-26px;left:50%;
+  transform:translateX(-50%);font-size:14px;color:#F5F3EE;white-space:nowrap;
+  font-family:"Bitter",serif;
+}
+.scale-legend{display:flex;gap:20px;font-size:15px;margin-top:30px;flex-wrap:wrap;color:#F5F3EE}
+.scale-legend i{width:14px;height:14px;display:inline-block;border-radius:50%;margin-right:6px;vertical-align:-2px}
+
+.order{background:var(--warm);color:#23201B;border:3px solid #23201B;padding:26px 22px;box-shadow:6px 6px 0 #23201B}
+.price{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.price .now{font-family:"Bitter",serif;font-size:42px;font-weight:800;line-height:1}
+.price .was{font-size:22px;color:var(--bark-soft);text-decoration:line-through}
+.price-note{font-size:16px;color:var(--bark-soft);margin-bottom:20px}
+
+label{display:block;font-weight:700;font-size:17px;margin-bottom:6px}
+input{
+  width:100%;font-size:20px;padding:14px;border:2px solid #23201B;
+  background:#fff;font-family:inherit;color:#23201B;margin-bottom:16px;
+}
+input:focus-visible{outline:3px solid var(--charge);outline-offset:2px}
+.err{color:#B42318;font-size:16px;margin:-12px 0 14px;display:none;font-weight:700}
+.err.show{display:block}
+
+.btn{
+  display:block;width:100%;border:none;cursor:pointer;
+  background:var(--charge);color:#fff;
+  font-family:"Bitter",serif;font-weight:800;font-size:22px;
+  padding:18px;border-bottom:5px solid var(--charge-dark);transition:transform .1s;
+}
+.btn:hover{background:var(--charge-dark);border-bottom-color:#8a3600}
+.btn:active{transform:translateY(3px);border-bottom-width:2px}
+.btn:focus-visible{outline:3px solid #23201B;outline-offset:3px}
+.form-note{font-size:16px;color:var(--bark-soft);margin-top:14px;text-align:center}
+
+.direct{margin-top:20px;padding-top:18px;border-top:2px dashed var(--blade)}
+.direct p{text-align:center;font-size:16px;color:var(--bark-soft);margin-bottom:12px}
+.direct-row{display:flex;gap:10px}
+.btn-alt{
+  flex:1;text-align:center;text-decoration:none;
+  background:#fff;color:#23201B;border:2px solid #23201B;
+  font-family:"Bitter",serif;font-weight:600;font-size:18px;padding:13px 8px;
+}
+.btn-alt:hover{background:#23201B;color:#fff}
+.btn-alt:focus-visible{outline:3px solid var(--charge);outline-offset:2px}
+.btn-alt.tg{border-color:#229ED9;color:#1B7FAE}
+.btn-alt.tg:hover{background:#229ED9;color:#fff;border-color:#229ED9}
+
+.done{display:none;text-align:center;padding:20px 0}
+.done.show{display:block}
+.done h3{font-size:26px;color:var(--sap);margin-bottom:10px}
+
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:#23201B;border:2px solid #23201B}
+.fact{background:#fff;color:#23201B;padding:20px 12px;text-align:center}
+.fact b{display:block;font-family:"Bitter",serif;font-size:30px;font-weight:800;color:var(--charge-dark)}
+.fact span{font-size:16px;color:var(--bark-soft)}
+
+h2{font-size:clamp(24px,5vw,32px);font-weight:800;margin-bottom:18px}
+.cut-rule{height:3px;background:#23201B;transform:skewY(-.6deg)}
+.white{background:#fff;color:#23201B}
+.pain ul{list-style:none;margin-top:6px}
+.pain li{padding:12px 0 12px 34px;position:relative;border-bottom:1px solid var(--blade)}
+.pain li::before{content:"—";position:absolute;left:6px;color:var(--charge-dark);font-weight:700}
+
+.step{display:flex;gap:16px;align-items:flex-start;padding:16px 0;border-bottom:1px solid var(--blade)}
+.step b{
+  flex-shrink:0;width:40px;height:40px;background:var(--sap);color:#fff;
+  display:grid;place-items:center;font-family:"Bitter",serif;font-size:20px;border-radius:50%;
+}
+.step p{font-size:18px}
+.step p strong{display:block;margin-bottom:2px}
+
+.pay{background:var(--sap-light);color:#23201B;border-left:6px solid var(--sap);padding:20px;margin-top:22px;font-size:18px}
+.pay strong{color:var(--sap)}
+
+.kit{list-style:none}
+.kit li{padding:10px 0 10px 30px;position:relative;border-bottom:1px solid var(--blade)}
+.kit li::before{content:"✓";position:absolute;left:4px;color:var(--sap);font-weight:700;font-size:20px}
+
+#reviews{display:none}
+.review{background:#fff;color:#23201B;border:2px solid var(--blade);padding:18px;margin-bottom:14px}
+.review p{font-size:18px;margin-bottom:8px}
+.review cite{font-style:normal;font-size:16px;color:var(--bark-soft);font-weight:700}
+
+footer{background:#23201B;color:#C4C8C1;padding:28px 0 100px;font-size:16px}
+footer a{color:#F5C77E}
+#legal{display:none}
+
+.sticky{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;background:#23201B;
+  padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;
+  border-top:3px solid var(--charge);
+}
+.sticky span{color:#F5F3EE;font-family:"Bitter",serif;font-size:20px;font-weight:800}
+.sticky a{
+  background:var(--charge);color:#fff;text-decoration:none;
+  font-family:"Bitter",serif;font-weight:800;font-size:18px;padding:12px 20px;
+}
+
+.h-facts{margin-top:26px}
+
+@media(min-width:700px){
+  .h-facts{margin-top:0}
+  .hero-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:start;
+    grid-template-areas:"left form" "facts form";
+  }
+  .h-left{grid-area:left}
+  .h-form{grid-area:form}
+  .h-facts{grid-area:facts}
+  .sticky{display:none}
+  footer{padding-bottom:28px}
+}
+@media(max-width:420px){.facts{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+<div class="trustbar"><div class="wrap">
+  <span><b>Оплата при отриманні</b> на Новій Пошті</span>
+  <span>Відправка в день замовлення</span>
+</div></div>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Сезон осінньої обрізки</div>
+  <h1>Ріже гілку <span data-cut></span> мм <em>одним натиском</em></h1>
+  <p class="lede">Акумуляторний секатор для саду. Без зусилля кистю, без мозолів, без болю в руці на другій годині роботи.</p>
+
+  <div class="hero-grid">
+    <div class="h-left">
+      <div class="media" id="media">
+        <video id="video" muted loop playsinline autoplay preload="metadata"></video>
+      </div>
+
+      <div class="scale">
+        <h3>Яку гілку ріже насправді</h3>
+        <div class="scale-row" id="scaleRow"></div>
+        <div class="scale-legend">
+          <span><i style="background:#7FA845"></i>Ріже впевнено</span>
+          <span><i style="background:#6B6560"></i>Не бере</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="h-form">
+      <div class="order" id="form">
+        <div class="price">
+          <span class="now" data-price></span>
+          <span class="was" data-old-price></span>
+        </div>
+        <p class="price-note">Ціна остаточна. Доставка Новою Поштою за тарифом перевізника.</p>
+
+        <form id="lead" novalidate>
+          <label for="name">Як до вас звертатися</label>
+          <input type="text" id="name" name="name" autocomplete="name" placeholder="Ім'я">
+          <div class="err" id="err-name">Напишіть, будь ласка, імʼя</div>
+
+          <label for="phone">Номер телефону</label>
+          <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="+380">
+          <div class="err" id="err-phone">Номер має містити 10 цифр — наприклад 0671234567</div>
+
+          <button class="btn" type="submit">Замовити секатор</button>
+          <p class="form-note">Зв'яжемось з вами протягом дня, уточнимо відділення. Передоплати немає.</p>
+        </form>
+
+        <div class="direct" id="direct">
+          <p>Або напишіть напряму:</p>
+          <div class="direct-row">
+            <a class="btn-alt tg" id="tgBtn" href="#">Написати в Telegram</a>
+
+          </div>
+        </div>
+
+        <div class="done" id="done">
+          <h3>Заявку прийнято</h3>
+          <p>Зв'яжемось з вами найближчим часом, щоб уточнити відділення Нової Пошти.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="h-facts">
+  <div class="facts">
+    <div class="fact"><b><span data-cut></span> мм</b><span>максимальний зріз</span></div>
+    <div class="fact"><b><span data-hours></span> год</b><span>роботи на заряді</span></div>
+    <div class="fact"><b data-batt></b><span>акумулятори в комплекті</span></div>
+  </div>
+    </div>
+  </div>
+</div></header>
+
+<section class="white pain"><div class="wrap">
+  <h2>Кому це справді потрібно</h2>
+  <ul>
+    <li>Руки після години з ручним секатором болять так, що доводиться кидати роботу на півдорозі.</li>
+    <li>Товсті гілки доводиться пиляти, бо секатор їх не бере — а це вдвічі довше.</li>
+    <li>Сад великий, обрізка розтягується на кілька вихідних замість одного.</li>
+    <li>Артрит або слабка кисть — стиснути ручний секатор просто боляче.</li>
+  </ul>
+</div></section>
+
+<div class="cut-rule"></div>
+
+<section><div class="wrap">
+  <h2>Як замовити й оплатити</h2>
+  <div class="step"><b>1</b><p><strong>Лишаєте імʼя та номер</strong>Форма вгорі. Більше нічого заповнювати не треба.</p></div>
+  <div class="step"><b>2</b><p><strong>Ми зв'язуємось з вами </strong>Уточнюємо місто й відділення Нової Пошти, відповідаємо на питання.</p></div>
+  <div class="step"><b>3</b><p><strong>Отримуєте й платите</strong>Оглядаєте товар на відділенні. Платите тільки після того, як побачили.</p></div>
+  <div class="pay"><strong>Передоплати немає.</strong> Гроші ви віддаєте на пошті, коли посилка вже у вас в руках. Якщо товар не сподобався — просто не забираєте.</div>
+</div></section>
+
+<div class="cut-rule"></div>
+
+<section class="white pain"><div class="wrap">
+  <h2>Що в коробці</h2>
+  <ul class="kit">
+    <li>Секатор акумуляторний</li>
+    <li>Акумулятор — <span data-batt></span> шт.</li>
+    <li>Зарядний пристрій</li>
+    <li>Точильний камінь</li>
+    <li>Мастило та ключ для обслуговування</li>
+    <li>Кейс для перенесення</li>
+  </ul>
+  <p style="margin-top:16px;color:#4E4841">Гарантія 12 місяців. Повернення протягом 14 днів згідно із Законом «Про захист прав споживачів».</p>
+</div></section>
+
+<section id="reviews"><div class="wrap">
+  <h2>Відгуки</h2>
+  <div id="reviewList"></div>
+</div></section>
+
+<div class="cut-rule"></div>
+
+<section class="white"><div class="wrap" style="text-align:center">
+  <h2>Обрізка — зараз, поки не пішли морози</h2>
+  <p class="lede">Лишіть номер, і ми зв'яжемось сьогодні.</p>
+  <p><a href="#form" class="btn" style="text-decoration:none;max-width:380px;margin:0 auto">Замовити секатор</a></p>
+</div></section>
+
+<footer><div class="wrap">
+  <p id="legal"></p>
+  <p style="margin-top:10px">Працюємо по всій Україні. Доставка Новою Поштою.</p>
+</div></footer>
+
+<div class="sticky">
+  <span data-price></span>
+  <a href="#form">Замовити</a>
+</div>
+
+<script>
+(function(){
+  var fmt = function(n){ return Number(n).toLocaleString('uk-UA') + ' грн'; };
+
+  // ── Характеристики ──
+  document.querySelectorAll('[data-cut]').forEach(function(el){ el.textContent = CONFIG.cutMm; });
+  document.querySelectorAll('[data-hours]').forEach(function(el){ el.textContent = CONFIG.workHours; });
+  document.querySelectorAll('[data-batt]').forEach(function(el){ el.textContent = CONFIG.batteries; });
+
+  // ── Шкала діаметра: малюється від реального cutMm ──
+  var row = document.getElementById('scaleRow');
+  if(row){
+    var max = CONFIG.cutMm;
+    var sizes = [
+      { mm: Math.round(max * 0.5),  ok: true  },
+      { mm: Math.round(max * 0.75), ok: true  },
+      { mm: max,                    ok: true  },
+      { mm: Math.round(max * 1.5),  ok: false }
+    ];
+    var biggest = sizes[sizes.length - 1].mm;
+    sizes.forEach(function(s){
+      var d = document.createElement('div');
+      d.className = 'branch ' + (s.ok ? 'ok' : 'no');
+      var px = Math.round(26 + (s.mm / biggest) * 78);
+      d.style.width = px + 'px';
+      d.style.height = px + 'px';
+      d.setAttribute('data-mm', s.mm + ' мм');
+      row.appendChild(d);
+    });
+  }
+
+  // ── Ціни ──
+  document.querySelectorAll('[data-price]').forEach(function(el){ el.textContent = fmt(CONFIG.price); });
+  document.querySelectorAll('[data-old-price]').forEach(function(el){
+    if(CONFIG.oldPrice && CONFIG.oldPrice > CONFIG.price) el.textContent = fmt(CONFIG.oldPrice);
+    else el.style.display = 'none';
+  });
+
+  // ── Telegram: немає ніка — немає кнопки ──
+  var tgBtn = document.getElementById('tgBtn');
+  if(CONFIG.telegram){ tgBtn.href = 'https://t.me/' + CONFIG.telegram; }
+  else { tgBtn.remove(); }
+
+  // ── Відео: немає — блок зникає ──
+  if(CONFIG.videoUrl){
+    var v = document.getElementById('video');
+    v.src = CONFIG.videoUrl;
+    document.getElementById('media').style.display = 'block';
+  }
+
+  // ── Юр. дані: немає — рядок зникає ──
+  if(CONFIG.legal){
+    var lg = document.getElementById('legal');
+    lg.textContent = CONFIG.legal;
+    lg.style.display = 'block';
+  }
+
+  // ── Відгуки: порожньо — секція зникає ──
+  if(Array.isArray(CONFIG.reviews) && CONFIG.reviews.length){
+    var list = document.getElementById('reviewList');
+    CONFIG.reviews.forEach(function(r){
+      var d = document.createElement('div');
+      d.className = 'review';
+      var p = document.createElement('p'); p.textContent = r.text;
+      var c = document.createElement('cite'); c.textContent = r.author || '';
+      d.appendChild(p); if(r.author) d.appendChild(c);
+      list.appendChild(d);
+    });
+    document.getElementById('reviews').style.display = 'block';
+  }
+
+  // ── Форма ──
+  var form = document.getElementById('lead');
+  var done = document.getElementById('done');
+  var direct = document.getElementById('direct');
+  var phone = document.getElementById('phone');
+  var name = document.getElementById('name');
+
+  phone.addEventListener('input', function(){
+    var d = this.value.replace(/\D/g,'').replace(/^380/,'').slice(0,10);
+    var out = d;
+    if(d.length > 3) out = d.slice(0,3) + ' ' + d.slice(3);
+    if(d.length > 6) out = d.slice(0,3) + ' ' + d.slice(3,6) + ' ' + d.slice(6);
+    this.value = out;
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var en = document.getElementById('err-name');
+    var ep = document.getElementById('err-phone');
+    en.classList.remove('show'); ep.classList.remove('show');
+
+    var badName = name.value.trim().length < 2;
+    var badPhone = phone.value.replace(/\D/g,'').length !== 10;
+    if(badName) en.classList.add('show');
+    if(badPhone) ep.classList.add('show');
+    if(badName || badPhone){ (badName ? name : phone).focus(); return; }
+
+    fetch('/api/lead', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: name.value.trim(),
+        phone: '+380' + phone.value.replace(/\D/g,''),
+        utm: location.search,
+        ts: new Date().toISOString()
+      })
+    }).catch(function(){});
+
+    if(window.fbq) fbq('track','Lead');
+
+    form.style.display = 'none';
+    if(direct) direct.style.display = 'none';
+    done.classList.add('show');
+    done.scrollIntoView({block:'center'});
+  });
+})();
+</script>
+</body>
+</html>
