@@ -494,7 +494,8 @@ footer a{color:#F5C77E}
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         name: name.value.trim(),
-        phone: '+380' + phone.value.replace(/\D/g,''),
+        // 0958051643 -> +380958051643 (провідний 0 прибираємо)
+        phone: '+380' + phone.value.replace(/\D/g,'').replace(/^0/,''),
         utm: location.search,
         ts: new Date().toISOString()
       })
