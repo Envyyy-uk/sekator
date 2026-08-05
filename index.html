@@ -300,6 +300,8 @@ footer a{color:#F5C77E}
           </div>
         </div>
 
+        <pre id="dbg" style="display:none;white-space:pre-wrap;word-break:break-all;background:#23201B;color:#7FA845;padding:14px;font-size:13px;margin-top:16px;font-family:ui-monospace,Menlo,Consolas,monospace"></pre>
+
         <div class="done" id="done">
           <h3>Заявку прийнято</h3>
           <p>Зв'яжемось з вами найближчим часом, щоб уточнити відділення Нової Пошти.</p>
@@ -473,6 +475,20 @@ footer a{color:#F5C77E}
     if(badPhone) ep.classList.add('show');
     if(badName || badPhone){ (badName ? name : phone).focus(); return; }
 
+    if(window.fbq) fbq('track','Lead');
+
+    form.style.display = 'none';
+    if(direct) direct.style.display = 'none';
+    done.classList.add('show');
+    done.scrollIntoView({block:'center'});
+
+    // ── ДІАГНОСТИКА ─────────────────────────────────────────
+    // Показує відповідь сервера прямо на сторінці.
+    // Коли все запрацює — цей блок можна прибрати.
+    var dbg = document.getElementById('dbg');
+    var say = function(t){ if(dbg){ dbg.style.display='block'; dbg.textContent = t; } };
+    say('Відправляю...');
+
     fetch('/api/lead', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
@@ -482,14 +498,13 @@ footer a{color:#F5C77E}
         utm: location.search,
         ts: new Date().toISOString()
       })
-    }).catch(function(){});
-
-    if(window.fbq) fbq('track','Lead');
-
-    form.style.display = 'none';
-    if(direct) direct.style.display = 'none';
-    done.classList.add('show');
-    done.scrollIntoView({block:'center'});
+    })
+    .then(function(r){
+      return r.text().then(function(t){ say('HTTP ' + r.status + '\n' + t.slice(0,400)); });
+    })
+    .catch(function(err){
+      say('ЗАПИТ НЕ ПІШОВ\n' + err);
+    });
   });
 })();
 </script>

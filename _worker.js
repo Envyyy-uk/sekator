@@ -32,9 +32,14 @@ export default {
         headers: { 'Content-Type': 'application/json' },
       });
 
-    // Перевірка, що функція жива: відкрий /api/lead у браузері
+    // Діагностика: відкрий /api/lead у браузері
     if (request.method === 'GET') {
-      return json({ ok: true, alive: true, hint: 'Функція працює. Заявки йдуть через POST.' });
+      return json({
+        alive: true,
+        TG_TOKEN: env.TG_TOKEN ? 'заданий (' + env.TG_TOKEN.length + ' символів)' : 'НЕ ЗАДАНИЙ',
+        TG_CHAT:  env.TG_CHAT  ? 'заданий (' + env.TG_CHAT + ')'                 : 'НЕ ЗАДАНИЙ',
+        hint: 'Якщо обидва задані — проблема не тут. Дивись Functions -> Logs.',
+      });
     }
 
     if (request.method !== 'POST') {
