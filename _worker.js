@@ -13,84 +13,105 @@
  *
  * 2. Новий деплой.
  *
- * 3. Відкрий у браузері один раз:
+ * 3. Один раз у браузері:
  *    https://api.telegram.org/bot<ТОКЕН>/setWebhook?url=https://<САЙТ>/tg&secret_token=<TG_SECRET>
  *
  * ─────────────────────────────────────────────────────────────
- * ЯК КОРИСТУВАТИСЬ
+ * ЦИКЛ ЗАМОВЛЕННЯ
  *
- * Процес: 🆕 Нова -> ✅ Підтверджена -> 📦 Відправлена -> 💰 Викуплена
- * Кнопка показує тільки НАСТУПНИЙ крок, щоб не було плутанини.
+ *   🆕 Нова
+ *     └─ [📝 Додати дані]  -> вставляєш повідомлення клієнта як є
+ *     └─ [✅ Підтвердити]
+ *   ✅ Підтверджена
+ *     └─ [📤 Текст постачальнику]  -> копіюєш і шлеш постачальнику
+ *     └─ [📦 Відправлено]
+ *   📦 Відправлена
+ *     └─ [📝 Додати дані]  -> вставляєш ТТН від постачальника
+ *     └─ [📨 Текст клієнту]  -> копіюєш і шлеш клієнту
+ *     └─ [💰 Викуплено]
  *
- * Дані клієнта — REPLY на картку. Розпізнаються префікси:
- *   місто Київ            -> Місто
- *   нп 15   /  відділення 15  -> Відділення
- *   ттн 20450012345678    -> ТТН
- *   решта тексту          -> Коментар (додається списком)
+ * Згенеровані тексти — окремі повідомлення з кнопкою 🗑,
+ * картка замовлення лишається недоторканою.
  * ─────────────────────────────────────────────────────────────
  */
 
+/* ═══ НАЛАШТУВАННЯ ТОВАРУ — міняй тут ═══ */
+const PRODUCT = 'Акумуляторний секатор з 2 АКБ у кейсі';
+const PRICE   = 1890;   // накладений платіж, грн
+
 const FLOW = {
-  new:       { label: '🆕 НОВА',          next: [['confirmed', '✅ Підтвердити'], ['refused', '❌ Відмова']] },
-  confirmed: { label: '✅ ПІДТВЕРДЖЕНА',  next: [['sent', '📦 Відправлено'],     ['refused', '❌ Відмова']] },
-  sent:      { label: '📦 ВІДПРАВЛЕНА',   next: [['paid', '💰 Викуплено'],       ['returned', '🚫 Не викупив']] },
-  paid:      { label: '💰 ВИКУПЛЕНА',     next: [['new', '↩️ Скинути']] },
-  refused:   { label: '❌ ВІДМОВА',        next: [['new', '↩️ Скинути']] },
-  returned:  { label: '🚫 НЕ ВИКУПИВ',     next: [['new', '↩️ Скинути']] },
+  new:       { label: '🆕 НОВА',         next: [['confirmed', '✅ Підтвердити'], ['refused', '❌ Відмова']] },
+  confirmed: { label: '✅ ПІДТВЕРДЖЕНА', next: [['sent', '📦 Відправлено'],     ['refused', '❌ Відмова']] },
+  sent:      { label: '📦 ВІДПРАВЛЕНА',  next: [['paid', '💰 Викуплено'],       ['returned', '🚫 Не викупив']] },
+  paid:      { label: '💰 ВИКУПЛЕНА',    next: [['new', '↩️ Скинути']] },
+  refused:   { label: '❌ ВІДМОВА',       next: [['new', '↩️ Скинути']] },
+  returned:  { label: '🚫 НЕ ВИКУПИВ',    next: [['new', '↩️ Скинути']] },
 };
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-
     if (url.pathname === '/tg')       return handleTelegram(request, env, url);
     if (url.pathname === '/api/lead') return handleLead(request, env, url);
-
     const v = url.pathname.match(/^\/v\/(\d{10,15})$/);
     if (v) return viberRedirect(v[1]);
-
     return env.ASSETS.fetch(request);
   },
 };
 
-/* ═══════════════ КАРТКА ЗАМОВЛЕННЯ ═══════════════ */
+/* ═══════════════ РОЗБІР ТЕКСТУ ═══════════════ */
+
+function extract(raw) {
+  let rest = ' ' + raw.replace(/\s+/g, ' ').trim() + ' ';
+  const out = { city: '', branch: '', ttn: '', note: '' };
+
+  let m = rest.match(/\bттн\s*№?\s*(\d[\d\s-]{8,20}\d)/i);
+  if (!m) m = rest.match(/\b(\d{10,18})\b/);
+  if (m) { out.ttn = m[1].replace(/\D/g, ''); rest = rest.replace(m[0], ' '); }
+
+  m = rest.match(/\b(?:відд[іi]лен\S*|отделен\S*|нп|№|no)\s*№?\s*(\d{1,4})\b/i);
+  if (m) { out.branch = m[1]; rest = rest.replace(m[0], ' '); }
+
+  m = rest.match(/\b(?:м\.?|місто|город)\s+([А-ЯІЇЄҐA-Z][\wА-Яа-яіїєґ'’\-]+(?:\s+[А-ЯІЇЄҐA-Z][\wА-Яа-яіїєґ'’\-]+)?)/u);
+  if (!m) m = rest.match(/(?:^|\s)([А-ЯІЇЄҐ][а-яіїєґ'’\-]{2,}(?:[\s-][А-ЯІЇЄҐ][а-яіїєґ'’\-]{2,})?)(?=\s|$)/u);
+  if (m) { out.city = m[1].trim(); rest = rest.replace(m[0], ' '); }
+
+  out.note = rest.replace(/\s+/g, ' ').replace(/^[\s,.;:-]+|[\s,.;:-]+$/g, '').trim();
+  return out;
+}
+
+/* ═══════════════ КАРТКА ═══════════════ */
 
 function buildCard(d) {
-  return [
-    `🔔 ЗАЯВКА`,
-    FLOW[d.status].label,
-    ``,
-    `👤 ${d.name || '—'}`,
-    `📞 ${d.phone}`,
-    d.tg ? `✈️ @${d.tg}` : null,
-    `🕐 ${d.time}`,
-    d.utm ? `🔗 ${d.utm}` : null,
-    ``,
-    `━━━━━━━━━━━━━━━`,
-    `Місто: ${d.city || '—'}`,
-    `Відділення: ${d.branch || '—'}`,
-    `ТТН: ${d.ttn || '—'}`,
-    ``,
-    `💬 Коментарі:`,
-    d.notes.length ? d.notes.map(n => `• ${n}`).join('\n') : '—',
-    ``,
-    `↩️ Reply на це повідомлення = додати дані`,
-  ].filter(x => x !== null).join('\n');
+  const L = [];
+  L.push(`🔔 ЗАЯВКА · ${FLOW[d.status].label}`);
+  L.push('');
+  L.push(`👤 ${d.name || '—'}`);
+  L.push(`📞 ${d.phone}`);
+  if (d.tg)  L.push(`✈️ @${d.tg}`);
+  L.push(`🕐 ${d.time}`);
+  if (d.utm) L.push(`🔗 ${d.utm}`);
+
+  if (d.city || d.branch || d.ttn) {
+    L.push('');
+    if (d.city)   L.push(`📍 Місто: ${d.city}`);
+    if (d.branch) L.push(`🏤 Відділення: ${d.branch}`);
+    if (d.ttn)    L.push(`📦 ТТН: ${d.ttn}`);
+  }
+
+  if (d.notes.length) {
+    L.push('');
+    L.push('💬 Коментарі:');
+    d.notes.forEach(n => L.push(`• ${n}`));
+  }
+  return L.join('\n');
 }
 
 function parseCard(text) {
   const get = (re) => (text.match(re) || [])[1] || '';
-  const statusLine = (text.split('\n')[1] || '').trim();
-  const status = Object.keys(FLOW).find(k => FLOW[k].label === statusLine) || 'new';
-
-  const notesBlock = (text.split('💬 Коментарі:')[1] || '').split('↩️')[0] || '';
-  const notes = notesBlock
-    .split('\n')
-    .map(s => s.trim())
-    .filter(s => s.startsWith('• '))
-    .map(s => s.slice(2).trim())
-    .filter(Boolean);
-
+  const statusLabel = (text.split('\n')[0] || '').split(' · ')[1] || '';
+  const status = Object.keys(FLOW).find(k => FLOW[k].label === statusLabel) || 'new';
+  const notes = text.split('\n').filter(s => s.startsWith('• ')).map(s => s.slice(2).trim()).filter(Boolean);
   return {
     status,
     name:   get(/^👤 (.*)$/m),
@@ -98,26 +119,60 @@ function parseCard(text) {
     tg:     get(/^✈️ @(\S+)$/m),
     time:   get(/^🕐 (.*)$/m),
     utm:    get(/^🔗 (.*)$/m),
-    city:   norm(get(/^Місто: (.*)$/m)),
-    branch: norm(get(/^Відділення: (.*)$/m)),
-    ttn:    norm(get(/^ТТН: (.*)$/m)),
+    city:   get(/^📍 Місто: (.*)$/m),
+    branch: get(/^🏤 Відділення: (.*)$/m),
+    ttn:    get(/^📦 ТТН: (.*)$/m),
     notes,
   };
 }
 
-const norm = (v) => (v === '—' ? '' : v);
-
 function buildKeyboard(origin, d) {
   const digits = String(d.phone || '').replace(/\D/g, '');
+  const rows = [];
+
   const contact = [{ text: '💬 Viber', url: `${origin}/v/${digits}` }];
   if (d.tg) contact.push({ text: '✈️ Telegram', url: `https://t.me/${d.tg}` });
+  rows.push(contact);
 
-  const steps = FLOW[d.status].next.map(([key, label]) => ({
-    text: label,
-    callback_data: 'st:' + key,
-  }));
+  const tools = [{ text: '📝 Додати дані', callback_data: 'add' }];
+  if (d.status === 'confirmed') tools.push({ text: '📤 Постачальнику', callback_data: 'msg:sup' });
+  if (d.status === 'sent' && d.ttn) tools.push({ text: '📨 Клієнту', callback_data: 'msg:cli' });
+  rows.push(tools);
 
-  return [contact, steps];
+  rows.push(FLOW[d.status].next.map(([k, label]) => ({ text: label, callback_data: 'st:' + k })));
+  return rows;
+}
+
+/* ═══════════════ ГЕНЕРОВАНІ ТЕКСТИ ═══════════════ */
+
+function supplierText(d) {
+  return [
+    'Доброго дня! Замовлення на відправку:',
+    '',
+    `Товар: ${PRODUCT}`,
+    `Отримувач: ${d.name || '—'}`,
+    `Телефон: ${d.phone}`,
+    `Місто: ${d.city || '—'}`,
+    `Відділення НП: ${d.branch || '—'}`,
+    `Накладений платіж: ${PRICE} грн`,
+    '',
+    'Прошу надіслати ТТН після відправки. Дякую!',
+  ].join('\n');
+}
+
+function clientText(d) {
+  return [
+    `Добрий день${d.name ? ', ' + d.name.split(' ')[0] : ''}!`,
+    '',
+    'Ваше замовлення відправлено 📦',
+    `ТТН: ${d.ttn}`,
+    `Відстежити: https://novaposhta.ua/tracking/?cargo_number=${d.ttn}`,
+    '',
+    `Оплата при отриманні — ${PRICE} грн.`,
+    'Посилка зберігається на відділенні 7 днів.',
+    '',
+    'Дякуємо за замовлення!',
+  ].join('\n');
 }
 
 /* ═══════════════ ЗАЯВКА З САЙТУ ═══════════════ */
@@ -146,14 +201,14 @@ async function handleLead(request, env, url) {
 
   const d = {
     status: 'new',
-    name:  String(data.name || '').trim().slice(0, 100),
+    name: String(data.name || '').trim().slice(0, 100),
     phone,
-    tg:    String(data.tg || '').trim().replace(/^@/, '').slice(0, 64),
-    utm:   String(data.utm || '').trim().slice(0, 200),
-    time:  new Date().toLocaleString('uk-UA', {
-             timeZone: 'Europe/Kiev',
-             day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-           }),
+    tg:   String(data.tg  || '').trim().replace(/^@/, '').slice(0, 64),
+    utm:  String(data.utm || '').trim().slice(0, 200),
+    time: new Date().toLocaleString('uk-UA', {
+            timeZone: 'Europe/Kiev',
+            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+          }),
     city: '', branch: '', ttn: '', notes: [],
   };
 
@@ -168,11 +223,10 @@ async function handleLead(request, env, url) {
   } catch (err) {
     console.error('telegram failed', err);
   }
-
   return json({ ok: true });
 }
 
-/* ═══════════════ ВЕБХУК TELEGRAM ═══════════════ */
+/* ═══════════════ ВЕБХУК ═══════════════ */
 
 async function handleTelegram(request, env, url) {
   const ok = () => new Response('ok');
@@ -185,14 +239,63 @@ async function handleTelegram(request, env, url) {
   let u;
   try { u = await request.json(); } catch { return ok(); }
 
-  /* ── Кнопка статусу ── */
-  if (u.callback_query) {
-    const cq  = u.callback_query;
-    const key = String(cq.data || '').replace(/^st:/, '');
-    const msg = cq.message;
-    let alert = '';
+  if (u.callback_query) return onCallback(u.callback_query, env, url, ok);
+  if (u.message)        return onMessage(u.message, env, url, ok);
+  return ok();
+}
 
-    if (!FLOW[key])            alert = 'Невідома дія';
+async function onCallback(cq, env, url, ok) {
+  const data = String(cq.data || '');
+  const msg = cq.message;
+  let alert = '';
+  let toast = '';
+
+  /* ── Прибрати згенерований текст ── */
+  if (data === 'del') {
+    await tgApi(env, 'deleteMessage', { chat_id: msg.chat.id, message_id: msg.message_id });
+    await tgApi(env, 'answerCallbackQuery', { callback_query_id: cq.id });
+    return ok();
+  }
+
+  /* ── Запросити дані ── */
+  if (data === 'add') {
+    // У підказку кладемо id картки і її поточний текст —
+    // інакше після відповіді картку не буде з чого перебудувати.
+    // Підказка видаляється одразу після вводу.
+    await tgApi(env, 'sendMessage', {
+      chat_id: msg.chat.id,
+      text: `📝 Встав дані одним повідомленням\n`
+          + `(місто, відділення, ТТН, коментар — у будь-якому порядку)\n`
+          + `\n#${msg.message_id}\n▪️\n${msg.text || ''}`,
+      disable_web_page_preview: true,
+      reply_markup: {
+        force_reply: true,
+        input_field_placeholder: 'Київ відділення 7 ттн 20450012345678',
+      },
+    });
+    await tgApi(env, 'answerCallbackQuery', { callback_query_id: cq.id });
+    return ok();
+  }
+
+  /* ── Згенерувати текст ── */
+  if (data.startsWith('msg:')) {
+    const d = parseCard(msg.text || '');
+    const kind = data.slice(4);
+    const text = kind === 'sup' ? supplierText(d) : clientText(d);
+    await tgApi(env, 'sendMessage', {
+      chat_id: msg.chat.id,
+      text,
+      disable_web_page_preview: true,
+      reply_markup: { inline_keyboard: [[{ text: '🗑 Прибрати', callback_data: 'del' }]] },
+    });
+    await tgApi(env, 'answerCallbackQuery', { callback_query_id: cq.id, text: 'Готово — копіюй і надсилай' });
+    return ok();
+  }
+
+  /* ── Зміна статусу ── */
+  if (data.startsWith('st:')) {
+    const key = data.slice(3);
+    if (!FLOW[key]) alert = 'Невідома дія';
     else if (!msg || !msg.text) alert = 'Немає тексту картки';
     else {
       const d = parseCard(msg.text);
@@ -205,50 +308,65 @@ async function handleTelegram(request, env, url) {
         reply_markup: { inline_keyboard: buildKeyboard(url.origin, d) },
       });
       if (!r.ok) alert = 'Помилка: ' + (r.description || 'невідома');
-    }
-
-    await tgApi(env, 'answerCallbackQuery', {
-      callback_query_id: cq.id,
-      text: alert || FLOW[key].label,
-      show_alert: Boolean(alert),
-    });
-    return ok();
-  }
-
-  /* ── Reply = додати дані ── */
-  const m = u.message;
-  if (m && m.text && m.reply_to_message && m.reply_to_message.text) {
-    const card = m.reply_to_message;
-    if (!/^🔔 ЗАЯВКА/.test(card.text)) return ok();
-
-    const d = parseCard(card.text);
-    const raw = m.text.trim().slice(0, 500);
-    const low = raw.toLowerCase();
-
-    if (/^(місто|город)\s+/i.test(raw))                 d.city   = raw.replace(/^\S+\s+/, '');
-    else if (/^(нп|відділення|отделение)\s+/i.test(raw)) d.branch = raw.replace(/^\S+\s+/, '');
-    else if (/^ттн\s+/i.test(raw))                       d.ttn    = raw.replace(/^\S+\s+/, '');
-    else if (/^\d{14}$/.test(raw))                       d.ttn    = raw;
-    else d.notes.push(raw);
-
-    const r = await tgApi(env, 'editMessageText', {
-      chat_id: card.chat.id,
-      message_id: card.message_id,
-      text: buildCard(d),
-      disable_web_page_preview: true,
-      reply_markup: { inline_keyboard: buildKeyboard(url.origin, d) },
-    });
-
-    if (r.ok) {
-      await tgApi(env, 'deleteMessage', { chat_id: m.chat.id, message_id: m.message_id });
-    } else {
-      await tgApi(env, 'sendMessage', {
-        chat_id: m.chat.id,
-        text: 'Не вдалось оновити картку: ' + (r.description || 'невідома помилка'),
-      });
+      else toast = FLOW[key].label;
     }
   }
 
+  await tgApi(env, 'answerCallbackQuery', {
+    callback_query_id: cq.id,
+    text: alert || toast,
+    show_alert: Boolean(alert),
+  });
+  return ok();
+}
+
+async function onMessage(m, env, url, ok) {
+  if (!m.text || !m.reply_to_message || !m.reply_to_message.text) return ok();
+
+  const parent = m.reply_to_message;
+  let cardId = null;
+  let cardText = null;
+
+  if (/^📝 Встав дані/.test(parent.text)) {
+    // Відповідь на підказку: id і текст картки зашиті в ній
+    const id = parent.text.match(/#(\d+)/);
+    const body = parent.text.split('\n▪️\n')[1];
+    if (id && body) { cardId = Number(id[1]); cardText = body; }
+  } else if (/^🔔 ЗАЯВКА/.test(parent.text)) {
+    // Звичайна відповідь прямо на картку
+    cardId = parent.message_id;
+    cardText = parent.text;
+  }
+
+  if (!cardId || !cardText) return ok();
+
+  const d = parseCard(cardText);
+  const e = extract(m.text.trim().slice(0, 1000));
+
+  if (e.city)   d.city = e.city;
+  if (e.branch) d.branch = e.branch;
+  if (e.ttn)    d.ttn = e.ttn;
+  if (e.note)   d.notes.push(e.note);
+
+  const r = await tgApi(env, 'editMessageText', {
+    chat_id: m.chat.id,
+    message_id: cardId,
+    text: buildCard(d),
+    disable_web_page_preview: true,
+    reply_markup: { inline_keyboard: buildKeyboard(url.origin, d) },
+  });
+
+  if (r.ok) {
+    await tgApi(env, 'deleteMessage', { chat_id: m.chat.id, message_id: m.message_id });
+    if (/^📝 Встав дані/.test(parent.text)) {
+      await tgApi(env, 'deleteMessage', { chat_id: m.chat.id, message_id: parent.message_id });
+    }
+  } else {
+    await tgApi(env, 'sendMessage', {
+      chat_id: m.chat.id,
+      text: 'Не вдалось оновити картку: ' + (r.description || 'невідома помилка'),
+    });
+  }
   return ok();
 }
 
