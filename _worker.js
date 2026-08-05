@@ -43,9 +43,10 @@ const FLOW = {
   new:       { label: '🆕 НОВА',         next: [['confirmed', '✅ Підтвердити'], ['refused', '❌ Відмова']] },
   confirmed: { label: '✅ ПІДТВЕРДЖЕНА', next: [['sent', '📦 Відправлено'],     ['refused', '❌ Відмова']] },
   sent:      { label: '📦 ВІДПРАВЛЕНА',  next: [['paid', '💰 Викуплено'],       ['returned', '🚫 Не викупив']] },
-  paid:      { label: '💰 ВИКУПЛЕНА',    next: [['new', '↩️ Скинути']] },
+  paid:      { label: '💰 ВИКУПЛЕНА',    next: [['defect', '⚠️ Брак/повернення'], ['new', '↩️ Скинути']] },
   refused:   { label: '❌ ВІДМОВА',       next: [['new', '↩️ Скинути']] },
   returned:  { label: '🚫 НЕ ВИКУПИВ',    next: [['new', '↩️ Скинути']] },
+  defect:    { label: '⚠️ БРАК/ПОВЕРНЕННЯ', next: [['new', '↩️ Скинути']] },
 };
 
 export default {
@@ -62,21 +63,54 @@ export default {
 /* ═══════════════ РОЗБІР ТЕКСТУ ═══════════════ */
 
 function extract(raw) {
+  // Увага: у JS \b не працює з кирилицею, тому межі слова
+  // задаємо явно через (?:^|[\s,;:.]) та (?=[\s,;:.]|$)
   let rest = ' ' + raw.replace(/\s+/g, ' ').trim() + ' ';
   const out = { city: '', branch: '', ttn: '', note: '' };
+  let hadDigits = false;
 
-  let m = rest.match(/\bттн\s*№?\s*(\d[\d\s-]{8,20}\d)/i);
-  if (!m) m = rest.match(/\b(\d{10,18})\b/);
-  if (m) { out.ttn = m[1].replace(/\D/g, ''); rest = rest.replace(m[0], ' '); }
+  const B = '(?:^|[\\s,;:.(])';   // початок слова
+  const E = '(?=[\\s,;:.)]|$)';   // кінець слова
+  const cut = (mm) => { rest = rest.replace(mm[0], ' '); };
+  const find = (src, flags) => rest.match(new RegExp(src, flags || 'i'));
 
-  m = rest.match(/\b(?:відд[іi]лен\S*|отделен\S*|нп|№|no)\s*№?\s*(\d{1,4})\b/i);
-  if (m) { out.branch = m[1]; rest = rest.replace(m[0], ' '); }
+  // ── ТТН ──
+  let m = find(B + 'ттн\\s*№?\\s*(\\d[\\d\\s-]{8,20}\\d)' + E);
+  if (!m) m = find(B + '(\\d{10,18})' + E);
+  if (m) { out.ttn = m[1].replace(/\D/g, ''); cut(m); hadDigits = true; }
 
-  m = rest.match(/\b(?:м\.?|місто|город)\s+([А-ЯІЇЄҐA-Z][\wА-Яа-яіїєґ'’\-]+(?:\s+[А-ЯІЇЄҐA-Z][\wА-Яа-яіїєґ'’\-]+)?)/u);
-  if (!m) m = rest.match(/(?:^|\s)([А-ЯІЇЄҐ][а-яіїєґ'’\-]{2,}(?:[\s-][А-ЯІЇЄҐ][а-яіїєґ'’\-]{2,})?)(?=\s|$)/u);
-  if (m) { out.city = m[1].trim(); rest = rest.replace(m[0], ' '); }
+  // ── Відділення ──
+  m = find(B + '(?:відд[іi]лен\\S*|отделен\\S*|нп|№|no)\\s*№?\\s*(\\d{1,4})' + E);
+  if (!m) m = find(B + '(\\d{1,4})' + E);
+  if (m) { out.branch = m[1]; cut(m); hadDigits = true; }
 
-  out.note = rest.replace(/\s+/g, ' ').replace(/^[\s,.;:-]+|[\s,.;:-]+$/g, '').trim();
+  // ── Місто ──
+  const STOP = /^(ттн|нп|відділення|відділеня|отделение|місто|город|м|no|не|так|ні|будь|ласка|дякую|привіт|добрий|день)$/i;
+
+  // 1) «м. Київ», «місто Київ»
+  m = find(B + '(?:м\\.?|місто|город)\\s+([А-ЯІЇЄҐа-яіїєґA-Za-z][\\wА-Яа-яіїєґ\'’\\-]{2,}(?:\\s+[А-ЯІЇЄҐ][\\wА-Яа-яіїєґ\'’\\-]+)?)' + E, 'iu');
+
+  // 2) слово з великої літери
+  if (!m) {
+    const cand = rest.match(/(?:^|\s)([А-ЯІЇЄҐ][а-яіїєґ'’\-]{2,}(?:[\s-][А-ЯІЇЄҐ][а-яіїєґ'’\-]{2,})?)(?=\s|$)/u);
+    if (cand && !STOP.test(cand[1].split(/[\s-]/)[0])) m = cand;
+  }
+
+  // 3) були цифри, лишилось одне-два слова — це місто
+  if (!m && hadDigits) {
+    const left = rest.trim().split(/\s+/).filter(Boolean);
+    if (left.length >= 1 && left.length <= 2 &&
+        /^[А-Яа-яІЇЄҐіїєґA-Za-z'’-]{3,}$/u.test(left[0]) && !STOP.test(left[0])) {
+      m = rest.match(new RegExp('(?:^|\\s)(' + left.join('\\s+') + ')(?=\\s|$)', 'u'));
+    }
+  }
+
+  if (m) {
+    out.city = m[1].trim().replace(/^./, c => c.toUpperCase());
+    cut(m);
+  }
+
+  out.note = rest.replace(/\s+/g, ' ').replace(/^[\s,.;:()-]+|[\s,.;:()-]+$/g, '').trim();
   return out;
 }
 
@@ -104,6 +138,9 @@ function buildCard(d) {
     L.push('💬 Коментарі:');
     d.notes.forEach(n => L.push(`• ${n}`));
   }
+
+  L.push('');
+  L.push('↩️ Reply — додати дані');
   return L.join('\n');
 }
 
@@ -134,10 +171,16 @@ function buildKeyboard(origin, d) {
   if (d.tg) contact.push({ text: '✈️ Telegram', url: `https://t.me/${d.tg}` });
   rows.push(contact);
 
-  const tools = [{ text: '📝 Додати дані', callback_data: 'add' }];
-  if (d.status === 'confirmed') tools.push({ text: '📤 Постачальнику', callback_data: 'msg:sup' });
-  if (d.status === 'sent' && d.ttn) tools.push({ text: '📨 Клієнту', callback_data: 'msg:cli' });
-  rows.push(tools);
+  rows.push([
+    { text: '📝 Додати дані', callback_data: 'add' },
+    { text: '🧹 Стерти дані', callback_data: 'clear' },
+  ]);
+
+  // Тексти доступні завжди — бот сам скаже, якщо чогось бракує
+  rows.push([
+    { text: '📤 Постачальнику', callback_data: 'msg:sup' },
+    { text: '📨 Клієнту',       callback_data: 'msg:cli' },
+  ]);
 
   rows.push(FLOW[d.status].next.map(([k, label]) => ({ text: label, callback_data: 'st:' + k })));
   return rows;
@@ -281,14 +324,50 @@ async function onCallback(cq, env, url, ok) {
   if (data.startsWith('msg:')) {
     const d = parseCard(msg.text || '');
     const kind = data.slice(4);
-    const text = kind === 'sup' ? supplierText(d) : clientText(d);
+
+    if (kind === 'sup' && (!d.city || !d.branch)) {
+      await tgApi(env, 'answerCallbackQuery', {
+        callback_query_id: cq.id,
+        text: 'Спершу додай місто і відділення',
+        show_alert: true,
+      });
+      return ok();
+    }
+    if (kind === 'cli' && !d.ttn) {
+      await tgApi(env, 'answerCallbackQuery', {
+        callback_query_id: cq.id,
+        text: 'Спершу додай ТТН від постачальника',
+        show_alert: true,
+      });
+      return ok();
+    }
+
     await tgApi(env, 'sendMessage', {
       chat_id: msg.chat.id,
-      text,
+      text: kind === 'sup' ? supplierText(d) : clientText(d),
       disable_web_page_preview: true,
       reply_markup: { inline_keyboard: [[{ text: '🗑 Прибрати', callback_data: 'del' }]] },
     });
     await tgApi(env, 'answerCallbackQuery', { callback_query_id: cq.id, text: 'Готово — копіюй і надсилай' });
+    return ok();
+  }
+
+  /* ── Стерти дані ── */
+  if (data === 'clear') {
+    const d = parseCard(msg.text || '');
+    d.city = ''; d.branch = ''; d.ttn = ''; d.notes = [];
+    const r = await tgApi(env, 'editMessageText', {
+      chat_id: msg.chat.id,
+      message_id: msg.message_id,
+      text: buildCard(d),
+      disable_web_page_preview: true,
+      reply_markup: { inline_keyboard: buildKeyboard(url.origin, d) },
+    });
+    await tgApi(env, 'answerCallbackQuery', {
+      callback_query_id: cq.id,
+      text: r.ok ? 'Дані стерті' : 'Помилка: ' + (r.description || ''),
+      show_alert: !r.ok,
+    });
     return ok();
   }
 
