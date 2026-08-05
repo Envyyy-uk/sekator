@@ -60,6 +60,7 @@ export default {
     const name = String(data.name || '').trim().slice(0, 100);
     const phone = String(data.phone || '').trim().slice(0, 20);
     const utm = String(data.utm || '').trim().slice(0, 300);
+    const tg = String(data.tg || '').trim().replace(/^@/, '').slice(0, 64);
 
     if (!/^\+380\d{9}$/.test(phone)) {
       return json({ ok: false, error: 'bad phone' }, 400);
@@ -75,6 +76,7 @@ export default {
       `🔔 НОВА ЗАЯВКА\n\n` +
       `Імʼя: ${name || '—'}\n` +
       `Телефон: ${phone}\n` +
+      (tg ? `Telegram: @${tg}\n` : '') +
       (utm ? `Джерело: ${utm}\n` : '') +
       `Час: ${kyivTime} (Київ)`;
 

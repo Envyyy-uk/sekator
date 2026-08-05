@@ -159,6 +159,15 @@ input:focus-visible{outline:3px solid var(--charge);outline-offset:2px}
 .btn:hover{background:var(--charge-dark);border-bottom-color:#8a3600}
 .btn:active{transform:translateY(3px);border-bottom-width:2px}
 .btn:focus-visible{outline:3px solid #23201B;outline-offset:3px}
+.tel-wrap{display:flex;align-items:stretch;border:2px solid #23201B;background:#fff;margin-bottom:16px}
+.tel-wrap:focus-within{outline:3px solid var(--charge);outline-offset:2px}
+.tel-prefix{
+  display:flex;align-items:center;padding:0 12px;background:#EFEAE0;color:#23201B;
+  font-size:20px;font-weight:700;border-right:2px solid #23201B;white-space:nowrap;
+}
+.tel-wrap input{border:none;margin:0;flex:1;min-width:0}
+.tel-wrap input:focus-visible{outline:none}
+.opt{font-weight:400;color:var(--bark-soft);font-size:15px}
 .form-note{font-size:16px;color:var(--bark-soft);margin-top:14px;text-align:center}
 
 .direct{margin-top:20px;padding-top:18px;border-top:2px dashed var(--blade)}
@@ -285,8 +294,14 @@ footer a{color:#F5C77E}
           <div class="err" id="err-name">Напишіть, будь ласка, імʼя</div>
 
           <label for="phone">Номер телефону</label>
-          <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="+380">
-          <div class="err" id="err-phone">Номер має містити 10 цифр — наприклад 0671234567</div>
+          <div class="tel-wrap">
+            <span class="tel-prefix">+380</span>
+            <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="numeric" placeholder="95 805 1643">
+          </div>
+          <div class="err" id="err-phone">Введіть 9 цифр після +380 — наприклад 95 805 1643</div>
+
+          <label for="tg">Нік у Telegram <span class="opt">— якщо зручніше листуватись</span></label>
+          <input type="text" id="tg" name="tg" placeholder="@nickname" autocomplete="off">
 
           <button class="btn" type="submit">Замовити секатор</button>
           <p class="form-note">Зв'яжемось з вами протягом дня, уточнимо відділення. Передоплати немає.</p>
@@ -299,8 +314,6 @@ footer a{color:#F5C77E}
 
           </div>
         </div>
-
-        <pre id="dbg" style="display:none;white-space:pre-wrap;word-break:break-all;background:#23201B;color:#7FA845;padding:14px;font-size:13px;margin-top:16px;font-family:ui-monospace,Menlo,Consolas,monospace"></pre>
 
         <div class="done" id="done">
           <h3>Заявку прийнято</h3>
@@ -455,11 +468,18 @@ footer a{color:#F5C77E}
   var phone = document.getElementById('phone');
   var name = document.getElementById('name');
 
+  // Лишає рівно 9 цифр. Вставка +380..., 380..., 0... теж працює.
+  function digits9(v){
+    var d = String(v).replace(/\D/g,'');
+    d = d.replace(/^380/, '').replace(/^0/, '');
+    return d.slice(0, 9);
+  }
+
   phone.addEventListener('input', function(){
-    var d = this.value.replace(/\D/g,'').replace(/^380/,'').slice(0,10);
+    var d = digits9(this.value);
     var out = d;
-    if(d.length > 3) out = d.slice(0,3) + ' ' + d.slice(3);
-    if(d.length > 6) out = d.slice(0,3) + ' ' + d.slice(3,6) + ' ' + d.slice(6);
+    if(d.length > 2) out = d.slice(0,2) + ' ' + d.slice(2);
+    if(d.length > 5) out = d.slice(0,2) + ' ' + d.slice(2,5) + ' ' + d.slice(5);
     this.value = out;
   });
 
@@ -470,7 +490,7 @@ footer a{color:#F5C77E}
     en.classList.remove('show'); ep.classList.remove('show');
 
     var badName = name.value.trim().length < 2;
-    var badPhone = phone.value.replace(/\D/g,'').length !== 10;
+    var badPhone = digits9(phone.value).length !== 9;
     if(badName) en.classList.add('show');
     if(badPhone) ep.classList.add('show');
     if(badName || badPhone){ (badName ? name : phone).focus(); return; }
@@ -482,30 +502,17 @@ footer a{color:#F5C77E}
     done.classList.add('show');
     done.scrollIntoView({block:'center'});
 
-    // ── ДІАГНОСТИКА ─────────────────────────────────────────
-    // Показує відповідь сервера прямо на сторінці.
-    // Коли все запрацює — цей блок можна прибрати.
-    var dbg = document.getElementById('dbg');
-    var say = function(t){ if(dbg){ dbg.style.display='block'; dbg.textContent = t; } };
-    say('Відправляю...');
-
     fetch('/api/lead', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         name: name.value.trim(),
-        // 0958051643 -> +380958051643 (провідний 0 прибираємо)
-        phone: '+380' + phone.value.replace(/\D/g,'').replace(/^0/,''),
+        phone: '+380' + digits9(phone.value),
+        tg: (document.getElementById('tg').value || '').trim().replace(/^@/,''),
         utm: location.search,
         ts: new Date().toISOString()
       })
-    })
-    .then(function(r){
-      return r.text().then(function(t){ say('HTTP ' + r.status + '\n' + t.slice(0,400)); });
-    })
-    .catch(function(err){
-      say('ЗАПИТ НЕ ПІШОВ\n' + err);
-    });
+    }).catch(function(){});
   });
 })();
 </script>
