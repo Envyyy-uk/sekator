@@ -37,6 +37,9 @@ var CONFIG = {
   // ── НЕОБОВʼЯЗКОВЕ ──────────────────────────────────────────
   // Порожнє значення = блок не показується взагалі.
 
+  // Графік роботи менеджера. Порожньо — рядки про графік зникають.
+  workTime: '10:00–20:00',
+
   // Нік у Telegram без @. Порожньо — кнопки Telegram не буде.
   telegram: 'Elektro_Sekator_Mng',
 
@@ -218,6 +221,12 @@ input:focus-visible{outline:3px solid var(--charge);outline-offset:2px}
   white-space:nowrap;
 }
 .fact span{font-size:15px;line-height:1.3;color:var(--bark-soft)}
+.hours{
+  display:none;margin-top:10px;text-align:center;font-size:15px;
+  color:var(--bark-soft);
+}
+.hours b{color:#23201B}
+.trustbar .wt{display:none}
 .facts-note{
   margin-top:14px;text-align:center;font-size:16px;color:var(--bark-soft);
 }
@@ -286,7 +295,8 @@ footer a{color:#F5C77E}
 
 <div class="trustbar"><div class="wrap">
   <span><b>Оплата при отриманні</b> на Новій Пошті</span>
-  <span>Відправка протям 24 годин</span>
+  <span>Відправка в день замовлення</span>
+  <span class="wt" data-wt-bar>Менеджер <b data-worktime></b> за Києвом</span>
 </div></div>
 
 <header class="hero"><div class="wrap">
@@ -337,6 +347,7 @@ footer a{color:#F5C77E}
 
           <button class="btn" type="submit">Замовити секатор</button>
           <p class="form-note">Напишемо вам у Viber протягом дня, уточнимо відділення. Передоплати немає.</p>
+          <p class="hours" data-wt>🕐 Менеджер працює щодня <b data-worktime></b> за київським часом</p>
         </form>
 
         <div class="direct" id="direct">
@@ -350,6 +361,7 @@ footer a{color:#F5C77E}
         <div class="done" id="done">
           <h3>Заявку прийнято</h3>
           <p>Напишемо вам у Viber на вказаний номер, щоб уточнити відділення Нової Пошти. Якщо лишили нік — напишемо в Telegram.</p>
+          <p class="hours" data-wt>🕐 Менеджер працює щодня <b data-worktime></b> за київським часом. Якщо заявка після 20:00 — відповімо зранку.</p>
         </div>
       </div>
     </div>
@@ -380,7 +392,7 @@ footer a{color:#F5C77E}
 <section><div class="wrap">
   <h2>Як замовити й оплатити</h2>
   <div class="step"><b>1</b><p><strong>Лишаєте імʼя та номер</strong>Форма вгорі. Більше нічого заповнювати не треба.</p></div>
-  <div class="step"><b>2</b><p><strong>Ми пишемо вам</strong>У Viber на вказаний номер або в Telegram. Уточнюємо місто й відділення, відповідаємо на питання.</p></div>
+  <div class="step"><b>2</b><p><strong>Ми пишемо вам</strong>У Viber на вказаний номер або в Telegram. Менеджер працює щодня з 10:00 до 20:00 за Києвом.</p></div>
   <div class="step"><b>3</b><p><strong>Отримуєте й платите</strong>Оглядаєте товар на відділенні. Платите тільки після того, як побачили.</p></div>
   <div class="pay"><strong>Передоплати немає.</strong> Гроші ви віддаєте на пошті, коли посилка вже у вас в руках. Якщо товар не сподобався — просто не забираєте.</div>
 </div></section>
@@ -423,6 +435,7 @@ footer a{color:#F5C77E}
 <footer><div class="wrap">
   <p id="legal"></p>
   <p style="margin-top:10px">Працюємо по всій Україні. Доставка Новою Поштою.</p>
+  <p style="margin-top:10px" class="hours" data-wt>Менеджер на звʼязку щодня <b data-worktime></b> за київським часом</p>
 </div></footer>
 
 <div class="sticky">
@@ -481,6 +494,14 @@ footer a{color:#F5C77E}
       if (CONFIG.oldPrice && CONFIG.oldPrice > CONFIG.price) el.textContent = fmt(CONFIG.oldPrice);
       else el.style.display = 'none';
     });
+  });
+
+  /* ── Графік роботи ── */
+  block('worktime', function(){
+    if (!CONFIG.workTime) return;
+    $$('[data-worktime]').forEach(function(el){ el.textContent = CONFIG.workTime; });
+    $$('[data-wt]').forEach(function(el){ el.style.display = 'block'; });
+    $$('[data-wt-bar]').forEach(function(el){ el.style.display = 'inline'; });
   });
 
   /* ── Telegram ── */
