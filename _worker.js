@@ -36,6 +36,7 @@
  */
 
 /* ═══ НАЛАШТУВАННЯ ТОВАРУ — міняй тут ═══ */
+const VERSION = '2026-08-05-v4';
 const PRODUCT = 'Акумуляторний секатор з 2 АКБ у кейсі';
 const PRICE   = 1890;   // накладений платіж, грн
 
@@ -227,6 +228,7 @@ async function handleLead(request, env, url) {
   if (request.method === 'GET') {
     return json({
       alive: true,
+      version: VERSION,
       TG_TOKEN:  env.TG_TOKEN  ? 'заданий' : 'НЕ ЗАДАНИЙ',
       TG_CHAT:   env.TG_CHAT   ? 'заданий' : 'НЕ ЗАДАНИЙ',
       TG_SECRET: env.TG_SECRET ? 'заданий' : 'НЕ ЗАДАНИЙ — кнопки не працюватимуть',
