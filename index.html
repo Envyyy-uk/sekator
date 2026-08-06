@@ -34,6 +34,21 @@ var CONFIG = {
   batteries: 2,    // акумуляторів у комплекті
 
 
+  // ── CRM ────────────────────────────────────────────────────
+  // Заявка додатково летить у Telegram-CRM. Порожній crmUrl —
+  // нічого не шлеться, сайт працює як раніше.
+  //
+  // sku — код товару. Латиниця, малими, без пробілів.
+  // Обраний один раз, НЕ МІНЯЄТЬСЯ ніколи: по ньому рахується
+  // статистика. Переназвеш — старі замовлення осиротіють.
+  //
+  // product — назва, яку ти бачиш у картці й у сповіщенні.
+
+  crmUrl:  'https://sekator-crm.dekavork.workers.dev/lead',
+  sku:     'sekator48',
+  product: 'Секатор електричний 48V',
+
+
   // ── НЕОБОВʼЯЗКОВЕ ──────────────────────────────────────────
   // Порожнє значення = блок не показується взагалі.
 
@@ -713,11 +728,30 @@ footer a{color:#F5C77E}
         ts: new Date().toISOString()
       };
 
+      // Старий бот у сайті. Працює як працював.
       fetch('/api/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       }).catch(function(){});
+
+      // Новий CRM. Дубляж — щоб не лишитись без заявок під час тесту.
+      // Переконався, що CRM ловить усе — видали блок /api/lead вище.
+      if (CONFIG.crmUrl) {
+        fetch(CONFIG.crmUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name:    payload.name,
+            phone:   payload.phone,
+            tg:      payload.tg,
+            sku:     CONFIG.sku,
+            product: CONFIG.product,
+            price:   CONFIG.price,
+            utm:     payload.utm
+          })
+        }).catch(function(){});
+      }
 
       if (window.fbq) fbq('track', 'Lead');
 
