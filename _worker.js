@@ -40,6 +40,10 @@ const VERSION = '2026-08-05-v5';
 const PRODUCT = 'Акумуляторний секатор з 2 АКБ у кейсі';
 const PRICE   = 1890;   // накладений платіж, грн
 
+/* Куди дублювати дані для звітів. Порожній CRM_URL — нічого не шлеться. */
+const CRM_URL = 'https://sekator-crm.dekavork.workers.dev/update';
+const CRM_KEY = 'sekator_crm_7f3k9m';
+
 const FLOW = {
   new:       { label: '🆕 НОВА',         next: [['confirmed', '✅ Підтвердити'], ['refused', '❌ Відмова']] },
   confirmed: { label: '✅ ПІДТВЕРДЖЕНА', next: [['sent', '📦 Відправлено'],     ['refused', '❌ Відмова']] },
@@ -417,7 +421,7 @@ async function onCallback(cq, env, url, ok) {
         reply_markup: { inline_keyboard: buildKeyboard(url.origin, d) },
       });
       if (!r.ok) alert = 'Помилка: ' + (r.description || 'невідома');
-      else toast = FLOW[key].label;
+      else { toast = FLOW[key].label; await crmSync(d); }
     }
   }
 
@@ -466,6 +470,7 @@ async function onMessage(m, env, url, ok) {
   });
 
   if (r.ok) {
+    await crmSync(d);
     await tgApi(env, 'deleteMessage', { chat_id: m.chat.id, message_id: m.message_id });
     if (/^📝 Встав дані/.test(parent.text)) {
       await tgApi(env, 'deleteMessage', { chat_id: m.chat.id, message_id: parent.message_id });
@@ -477,6 +482,31 @@ async function onMessage(m, env, url, ok) {
     });
   }
   return ok();
+}
+
+/* ═══════════════ СИНХРОНІЗАЦІЯ З CRM ═══════════════ */
+
+/**
+ * Шле поточний стан заявки в CRM для звітів.
+ * Помилка тут нічого не ламає — заявка в цьому боті працює далі.
+ */
+async function crmSync(d) {
+  if (!CRM_URL || !d || !d.phone) return;
+  try {
+    await fetch(CRM_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key:    CRM_KEY,
+        phone:  d.phone,
+        status: d.status,
+        city:   d.city,
+        branch: d.branch,
+        ttn:    d.ttn,
+        notes:  d.notes,
+      }),
+    });
+  } catch (e) {}
 }
 
 /* ═══════════════ ДРІБНИЦІ ═══════════════ */
