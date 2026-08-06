@@ -46,6 +46,18 @@ var CONFIG = {
   // Нік у Telegram без @. Порожньо — кнопки Telegram не буде.
   telegram: 'Elektro_Sekator_Mng',
 
+  // ── ІКОНКИ В ФУТЕРІ ────────────────────────────────────────
+  // Порожнє значення — відповідна іконка не показується.
+
+  // Номер для Viber у форматі +380XXXXXXXXX
+  viber: '+380958051643',
+
+  // Пошта для листів
+  email: 'elektrosekato@gmail.com',
+
+  // Повне посилання на сторінку у Facebook
+  facebook: 'https://www.facebook.com/profile.php?id=61592594083163',
+
   // Meta Pixel ID. Порожньо — піксель не вантажиться.
   pixelId: '1681449083148874',
 
@@ -244,8 +256,25 @@ input:focus-visible{outline:3px solid var(--charge);outline-offset:2px}
   color:var(--bark-soft);
 }
 .hours b{color:inherit;font-weight:700}
-footer .hours{color:#D8D3CA}
+footer .hours{color:#D8D3CA;text-align:left}
 footer .hours b{color:#F5F3EE}
+.foot-row{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;margin-top:10px;
+}
+.foot-row .hours{margin-top:0}
+.social{display:flex;gap:10px;align-items:center}
+.social a{
+  display:flex;align-items:center;justify-content:center;
+  width:38px;height:38px;border-radius:50%;
+  background:#3A352E;color:#F5F3EE;
+  transition:background .15s ease;
+}
+.social a:hover{background:#F5C77E;color:#23201B}
+.social svg{width:20px;height:20px;fill:currentColor;display:block}
+@media(max-width:520px){
+  .foot-row{justify-content:flex-start}
+}
 .trustbar .wt{display:inline}
 .facts-note{
   margin-top:14px;text-align:center;font-size:16px;color:var(--bark-soft);
@@ -456,7 +485,10 @@ footer a{color:#F5C77E}
 <footer><div class="wrap">
   <p id="legal"></p>
   <p style="margin-top:10px">Працюємо по всій Україні. Доставка Новою Поштою.</p>
-  <p style="margin-top:10px" class="hours" data-wt>Менеджер на звʼязку <b data-workdays>Пн–Сб</b> <b data-worktime>10:00–20:00</b> за київським часом</p>
+  <div class="foot-row">
+    <p class="hours" data-wt>Менеджер на звʼязку <b data-workdays>Пн–Сб</b> <b data-worktime>10:00–20:00</b> за київським часом</p>
+    <div class="social" id="social"></div>
+  </div>
 </div></footer>
 
 <div class="sticky">
@@ -527,6 +559,35 @@ footer a{color:#F5C77E}
     // тільки якщо в конфігу справді щось є — інакше лишаємо як у HTML.
     if (days) $$('[data-workdays]').forEach(function(el){ el.textContent = days; });
     if (time) $$('[data-worktime]').forEach(function(el){ el.textContent = time; });
+  });
+
+  /* ── Іконки в футері ── */
+  block('social', function(){
+    var box = document.getElementById('social');
+    if (!box) return;
+
+    var ICONS = {
+      telegram: 'M9.04 15.47L8.7 20.2c.48 0 .69-.21.94-.46l2.26-2.16 4.68 3.43c.86.48 1.47.23 1.7-.79l3.08-14.44c.27-1.27-.46-1.77-1.3-1.46L1.9 9.9c-1.25.48-1.23 1.17-.21 1.48l4.6 1.43L17.1 6.1c.5-.31.96-.14.58.2L9.04 15.47z',
+      viber:    'M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.4 21 3 13.6 3 4.5c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1l-2.3 1.7z',
+      email:    'M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6zm2.4.5L12 12l7.6-5.5H4.4z',
+      facebook: 'M15.12 5.32H17V2.14A26.11 26.11 0 0 0 14.26 2C11.54 2 9.68 3.66 9.68 6.7v2.62H6.61v3.56h3.07V22h3.68v-9.12h3.06l.46-3.56h-3.52V7.05c0-1.05.28-1.73 1.76-1.73z'
+    };
+
+    var links = [];
+    if (CONFIG.telegram) links.push(['telegram', 'https://t.me/' + CONFIG.telegram, 'Telegram']);
+    if (CONFIG.viber)    links.push(['viber', 'viber://chat?number=' + encodeURIComponent(CONFIG.viber), 'Viber']);
+    if (CONFIG.email)    links.push(['email', 'mailto:' + CONFIG.email, 'Пошта']);
+    if (CONFIG.facebook) links.push(['facebook', CONFIG.facebook, 'Facebook']);
+
+    links.forEach(function(l){
+      var a = document.createElement('a');
+      a.href = l[1];
+      a.setAttribute('aria-label', l[2]);
+      a.setAttribute('title', l[2]);
+      if (l[0] === 'facebook') { a.target = '_blank'; a.rel = 'noopener'; }
+      a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICONS[l[0]] + '"/></svg>';
+      box.appendChild(a);
+    });
   });
 
   /* ── Telegram ── */
