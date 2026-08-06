@@ -41,7 +41,8 @@ const PRODUCT = 'Акумуляторний секатор з 2 АКБ у кей
 const PRICE   = 1890;   // накладений платіж, грн
 
 /* Куди дублювати дані для звітів. Порожній CRM_URL — нічого не шлеться. */
-const CRM_URL = 'https://sekator-crm.dekavork.workers.dev/update';
+const CRM_URL  = 'https://sekator-crm.dekavork.workers.dev/update';
+const CRM_LINK = 'https://sekator-crm.dekavork.workers.dev/link';
 const CRM_KEY = 'sekator_crm_7f3k9m';
 
 const FLOW = {
@@ -55,10 +56,11 @@ const FLOW = {
 };
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/tg')       return handleTelegram(request, env, url);
-    if (url.pathname === '/api/lead') return handleLead(request, env, url);
+    if (url.pathname === '/api/del')  return handleDel(request, env);
+    if (url.pathname === '/api/lead') return handleLead(request, env, url, ctx);
     const v = url.pathname.match(/^\/v\/(\d{10,15})$/);
     if (v) return viberRedirect(v[1]);
     return env.ASSETS.fetch(request);
@@ -247,7 +249,7 @@ function clientText(d) {
 
 /* ═══════════════ ЗАЯВКА З САЙТУ ═══════════════ */
 
-async function handleLead(request, env, url) {
+async function handleLead(request, env, url, ctx) {
   const json = (obj, status = 200) =>
     new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -291,10 +293,28 @@ async function handleLead(request, env, url) {
       reply_markup: { inline_keyboard: buildKeyboard(url.origin, d) },
     });
     if (!r.ok) return json({ ok: true, warn: r.description });
+
+    // Кажемо CRM, де саме лежить картка в цьому боті — щоб потім
+    // видалення в CRM прибирало її і тут. Із затримкою: CRM у цей
+    // момент ще створює свій запис.
+    const chatId = r.result && r.result.chat && r.result.chat.id;
+    const msgId  = r.result && r.result.message_id;
+    if (ctx && chatId && msgId) ctx.waitUntil(crmLink(phone, chatId, msgId));
   } catch (err) {
     console.error('telegram failed', err);
   }
   return json({ ok: true });
+}
+
+/* CRM просить прибрати картку тут. Свій токен нікуди не віддаємо. */
+async function handleDel(request, env) {
+  if (request.method !== 'POST') return new Response('POST only', { status: 405 });
+  let d = {};
+  try { d = await request.json(); } catch { return new Response('bad', { status: 400 }); }
+  if (d.key !== CRM_KEY) return new Response('forbidden', { status: 403 });
+  if (!d.chatId || !d.messageId) return new Response('no target', { status: 400 });
+  await tgApi(env, 'deleteMessage', { chat_id: d.chatId, message_id: d.messageId });
+  return new Response('ok');
 }
 
 /* ═══════════════ ВЕБХУК ═══════════════ */
@@ -421,7 +441,7 @@ async function onCallback(cq, env, url, ok) {
         reply_markup: { inline_keyboard: buildKeyboard(url.origin, d) },
       });
       if (!r.ok) alert = 'Помилка: ' + (r.description || 'невідома');
-      else { toast = FLOW[key].label; await crmSync(d); }
+      else { toast = FLOW[key].label; await crmSync(d, { chatId: msg.chat.id, messageId: msg.message_id }); }
     }
   }
 
@@ -470,7 +490,7 @@ async function onMessage(m, env, url, ok) {
   });
 
   if (r.ok) {
-    await crmSync(d);
+    await crmSync(d, { chatId: m.chat.id, messageId: cardId });
     await tgApi(env, 'deleteMessage', { chat_id: m.chat.id, message_id: m.message_id });
     if (/^📝 Встав дані/.test(parent.text)) {
       await tgApi(env, 'deleteMessage', { chat_id: m.chat.id, message_id: parent.message_id });
@@ -490,7 +510,18 @@ async function onMessage(m, env, url, ok) {
  * Шле поточний стан заявки в CRM для звітів.
  * Помилка тут нічого не ламає — заявка в цьому боті працює далі.
  */
-async function crmSync(d) {
+async function crmLink(phone, chatId, messageId) {
+  await new Promise(r => setTimeout(r, 2500));   // даємо CRM створити запис
+  try {
+    await fetch(CRM_LINK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: CRM_KEY, phone, chatId, messageId }),
+    });
+  } catch (e) {}
+}
+
+async function crmSync(d, src) {
   if (!CRM_URL || !d || !d.phone) return;
   try {
     await fetch(CRM_URL, {
@@ -504,6 +535,8 @@ async function crmSync(d) {
         branch: d.branch,
         ttn:    d.ttn,
         notes:  d.notes,
+        srcChat: src && src.chatId,
+        srcMsg:  src && src.messageId,
       }),
     });
   } catch (e) {}
