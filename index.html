@@ -38,6 +38,9 @@ var CONFIG = {
   // Порожнє значення = блок не показується взагалі.
 
   // Графік роботи менеджера. Порожньо — рядки про графік зникають.
+  // Дні роботи менеджера, показуються поруч з часом.
+  workDays: 'Пн–Сб',
+
   workTime: '10:00–20:00',
 
   // Нік у Telegram без @. Порожньо — кнопки Telegram не буде.
@@ -61,7 +64,7 @@ var CONFIG = {
   // Відгуки. Порожній масив = секція відгуків зникає.
   // Додавати так:
   //   { text: 'Текст відгуку', author: 'Марія, Полтава' },
-  reviews: [{text:'Замовляв через лізинг — усе пройшло швидко та без зайвої бюрократії. Секатор потужний, легко ріже. Покупкою задоволений.' authot:' Ігор, Львів '}]
+  reviews: []
 
 };
 </script>
@@ -295,8 +298,8 @@ footer a{color:#F5C77E}
 
 <div class="trustbar"><div class="wrap">
   <span><b>Оплата при отриманні</b> на Новій Пошті</span>
-  <span>Відправка протягом <b>24</b> годин</span>
-  <span class="wt" data-wt-bar>Менеджер <b data-worktime></b> за Києвом</span>
+  <span>Відправка в день замовлення</span>
+  <span class="wt" data-wt-bar>Менеджер <b data-workdays></b> <b data-worktime></b> за Києвом</span>
 </div></div>
 
 <header class="hero"><div class="wrap">
@@ -347,7 +350,7 @@ footer a{color:#F5C77E}
 
           <button class="btn" type="submit">Замовити секатор</button>
           <p class="form-note">Напишемо вам у Viber протягом дня, уточнимо відділення. Передоплати немає.</p>
-          <p class="hours" data-wt>🕐 Менеджер працює з Понеділка по Суботу <b data-worktime></b> за київським часом</p>
+          <p class="hours" data-wt>🕐 Менеджер працює <b data-workdays></b> <b data-worktime></b> за київським часом</p>
         </form>
 
         <div class="direct" id="direct">
@@ -361,7 +364,7 @@ footer a{color:#F5C77E}
         <div class="done" id="done">
           <h3>Заявку прийнято</h3>
           <p>Напишемо вам у Viber на вказаний номер, щоб уточнити відділення Нової Пошти. Якщо лишили нік — напишемо в Telegram.</p>
-          <p class="hours" data-wt>🕐 Менеджер працює з Понеділка по Суботу <b data-worktime></b> за київським часом. Якщо заявка після 20:00 — відповімо зранку.</p>
+          <p class="hours" data-wt>🕐 Менеджер працює <b data-workdays></b> <b data-worktime></b> за київським часом. Якщо заявка у вихідний або ввечері — відповімо в перший робочий день.</p>
         </div>
       </div>
     </div>
@@ -392,7 +395,7 @@ footer a{color:#F5C77E}
 <section><div class="wrap">
   <h2>Як замовити й оплатити</h2>
   <div class="step"><b>1</b><p><strong>Лишаєте імʼя та номер</strong>Форма вгорі. Більше нічого заповнювати не треба.</p></div>
-  <div class="step"><b>2</b><p><strong>Ми пишемо вам</strong>У Viber на вказаний номер або в Telegram. Менеджер працює щодня з 10:00 до 20:00 за Києвом.</p></div>
+  <div class="step"><b>2</b><p><strong>Ми пишемо вам</strong>У Viber на вказаний номер або в Telegram. Менеджер працює з понеділка по суботу, 10:00–20:00 за Києвом.</p></div>
   <div class="step"><b>3</b><p><strong>Отримуєте й платите</strong>Оглядаєте товар на відділенні. Платите тільки після того, як побачили.</p></div>
   <div class="pay"><strong>Передоплати немає.</strong> Гроші ви віддаєте на пошті, коли посилка вже у вас в руках. Якщо товар не сподобався — просто не забираєте.</div>
 </div></section>
@@ -435,7 +438,7 @@ footer a{color:#F5C77E}
 <footer><div class="wrap">
   <p id="legal"></p>
   <p style="margin-top:10px">Працюємо по всій Україні. Доставка Новою Поштою.</p>
-  <p style="margin-top:10px" class="hours" data-wt>Менеджер на звʼязку щодня <b data-worktime></b> за київським часом</p>
+  <p style="margin-top:10px" class="hours" data-wt>Менеджер на звʼязку <b data-workdays></b> <b data-worktime></b> за київським часом</p>
 </div></footer>
 
 <div class="sticky">
@@ -500,6 +503,7 @@ footer a{color:#F5C77E}
   block('worktime', function(){
     if (!CONFIG.workTime) return;
     $$('[data-worktime]').forEach(function(el){ el.textContent = CONFIG.workTime; });
+    $$('[data-workdays]').forEach(function(el){ el.textContent = CONFIG.workDays; });
     $$('[data-wt]').forEach(function(el){ el.style.display = 'block'; });
     $$('[data-wt-bar]').forEach(function(el){ el.style.display = 'inline'; });
   });
