@@ -36,14 +36,14 @@
  */
 
 /* ═══ НАЛАШТУВАННЯ ТОВАРУ — міняй тут ═══ */
-const VERSION = '2026-08-05-v5';
-const PRODUCT = 'Акумуляторний секатор з 2 АКБ у кейсі';
-const PRICE   = 1890;   // накладений платіж, грн
+const VERSION = '2026-08-08-pb-v1';
+const PRODUCT = 'Павербанк AWEI P101K зі швидкою зарядкою 22.5W';
+const PRICE   = 2790;   // накладений платіж, грн
 
 /* Куди дублювати дані для звітів. Порожній CRM_URL — нічого не шлеться. */
 const CRM_URL  = 'https://sekator-crm.dekavork.workers.dev/update';
 const CRM_LINK = 'https://sekator-crm.dekavork.workers.dev/link';
-const CRM_KEY = 'sekator_082026drop';
+const CRM_KEY = 'sekator_crm_7f3k9m';
 
 const FLOW = {
   new:       { label: '🆕 НОВА',         next: [['confirmed', '✅ Підтвердити'], ['refused', '❌ Відмова']] },
@@ -61,6 +61,7 @@ export default {
     if (url.pathname === '/tg')       return handleTelegram(request, env, url);
     if (url.pathname === '/api/del')  return handleDel(request, env);
     if (url.pathname === '/api/lead') return handleLead(request, env, url, ctx);
+    if (url.pathname === '/api/diag') return handleDiag(request, env, url);
     const v = url.pathname.match(/^\/v\/(\d{10,15})$/);
     if (v) return viberRedirect(v[1]);
     return env.ASSETS.fetch(request);
@@ -243,6 +244,8 @@ function clientText(d) {
     `Оплата при отриманні — ${PRICE} грн.`,
     'Посилка зберігається на відділенні 7 днів.',
     '',
+    'Порада: перед першим використанням зарядіть павербанк повністю — це займе ніч.',
+    '',
     'Дякуємо за замовлення!',
   ].join('\n');
 }
@@ -306,6 +309,62 @@ async function handleLead(request, env, url, ctx) {
   return json({ ok: true });
 }
 
+/* ═══════════════ ДІАГНОСТИКА ═══════════════ */
+
+/**
+ * Відкрий https://<домен>/api/diag — показує, що бачить Telegram.
+ * Токен назовні не віддається, тільки факт наявності.
+ */
+async function handleDiag(request, env, url) {
+  const out = {
+    version: VERSION,
+    site: url.origin,
+    env: {
+      TG_TOKEN:  env.TG_TOKEN  ? 'заданий' : 'НЕ ЗАДАНИЙ',
+      TG_CHAT:   env.TG_CHAT   ? String(env.TG_CHAT) : 'НЕ ЗАДАНИЙ',
+      TG_SECRET: env.TG_SECRET ? 'заданий' : 'НЕ ЗАДАНИЙ',
+    },
+  };
+
+  if (env.TG_TOKEN) {
+    try {
+      const r = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/getWebhookInfo`);
+      const j = await r.json();
+      const info = j.result || {};
+      const expect = url.origin + '/tg';
+
+      out.webhook = {
+        url: info.url || '(не встановлено)',
+        очікується: expect,
+        адреса_вірна: info.url === expect,
+        secret_token_заданий: Boolean(info.has_custom_certificate === false && info.url)
+          ? '(Telegram не показує значення)' : '(невідомо)',
+        необроблених: info.pending_update_count,
+        остання_помилка: info.last_error_message || 'немає',
+      };
+
+      if (!info.url) {
+        out.що_робити = 'Вебхук не встановлений. Виконай setWebhook.';
+      } else if (info.url !== expect) {
+        out.що_робити = 'Вебхук вказує на інший домен. Перереєструй на ' + expect;
+      } else if (info.last_error_message) {
+        out.що_робити = 'Telegram отримує помилку. Якщо це 403 — secret_token не збігається з TG_SECRET.';
+      } else {
+        out.що_робити = 'Адреса правильна. Якщо кнопки мовчать — не збігається secret_token.';
+      }
+
+      out.перереєструвати =
+        `https://api.telegram.org/bot<ТОКЕН>/setWebhook?url=${expect}&secret_token=<значення TG_SECRET>`;
+    } catch (e) {
+      out.webhook = { error: String(e) };
+    }
+  }
+
+  return new Response(JSON.stringify(out, null, 2), {
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+  });
+}
+
 /* CRM просить прибрати картку тут. Свій токен нікуди не віддаємо. */
 async function handleDel(request, env) {
   if (request.method !== 'POST') return new Response('POST only', { status: 405 });
@@ -323,7 +382,16 @@ async function handleTelegram(request, env, url) {
   const ok = () => new Response('ok');
 
   if (request.method !== 'POST') return ok();
-  if (env.TG_SECRET && request.headers.get('X-Telegram-Bot-Api-Secret-Token') !== env.TG_SECRET) {
+  const want = String(env.TG_SECRET || '').trim();
+  const got  = String(request.headers.get('X-Telegram-Bot-Api-Secret-Token') || '').trim();
+  if (want && got !== want) {
+    // Найчастіша причина: у setWebhook вписаний інший secret_token.
+    // Кажемо про це в чат, інакше кнопки просто мовчать без пояснень.
+    await tgApi(env, 'sendMessage', {
+      chat_id: env.TG_CHAT,
+      text: '⚠️ Кнопки не працюють: secret_token у вебхуку не збігається з TG_SECRET.\n\n'
+          + 'Перереєструй вебхук із правильним значенням — див. /api/diag на сайті.',
+    });
     return new Response('forbidden', { status: 403 });
   }
 
@@ -562,13 +630,13 @@ function viberRedirect(num) {
     `<!DOCTYPE html><html lang="uk"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Відкриваю Viber…</title>
-<style>body{font-family:system-ui,sans-serif;padding:40px 20px;text-align:center;background:#F5F3EE;color:#23201B}
+<style>body{font-family:system-ui,sans-serif;padding:40px 20px;text-align:center;background:#FBFAF7;color:#131A24}
 a{display:inline-block;margin-top:20px;background:#7360F2;color:#fff;text-decoration:none;padding:14px 26px;font-weight:700;border-radius:6px}</style>
 <script>location.replace('viber://chat?number=%2B${num}');</script>
 </head><body>
 <p>Відкриваю Viber…</p>
 <a href="viber://chat?number=%2B${num}">Відкрити вручну</a>
-<p style="margin-top:24px;color:#4E4841;font-size:14px">+${num}</p>
+<p style="margin-top:24px;color:#3C4757;font-size:14px">+${num}</p>
 </body></html>`,
     { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   );
