@@ -43,7 +43,7 @@ const PRICE   = 1890;   // накладений платіж, грн
 /* Куди дублювати дані для звітів. Порожній CRM_URL — нічого не шлеться. */
 const CRM_URL  = 'https://sekator-crm.dekavork.workers.dev/update';
 const CRM_LINK = 'https://sekator-crm.dekavork.workers.dev/link';
-const CRM_KEY = 'sekator_crm_7f3k9m';
+const CRM_KEY = 'sekator_082026drop';
 
 const FLOW = {
   new:       { label: '🆕 НОВА',         next: [['confirmed', '✅ Підтвердити'], ['refused', '❌ Відмова']] },
